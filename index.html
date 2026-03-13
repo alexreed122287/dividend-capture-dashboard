@@ -1163,46 +1163,70 @@ function renderCalendar() {
     <div class="alert alert-info mb-16">🟢 BUY = purchase today to capture tomorrow's dividend. 🔴 SELL = ex-div today, sell after price stabilizes.</div>
     <div class="calendar-grid">
       ${DAYS.map(day => {
-        const sellETFs = ETF_DB.filter(e => e.freq === "W" && e.exDay === day).sort((a,b) => parseFloat(compositeScore(b)) - parseFloat(compositeScore(a)));
-        const nextDay = DAYS[(DAYS.indexOf(day) + 1) % 5];
-        const buyETFs = ETF_DB.filter(e => e.freq === "W" && e.exDay === nextDay).sort((a,b) => parseFloat(compositeScore(b)) - parseFloat(compositeScore(a)));
+        const now = new Date();
+        const todayDow = now.getDay() === 0 ? 6 : now.getDay() - 1;
+        const dayIdx = DAYS.indexOf(day);
+        const dayDate = new Date(now);
+        dayDate.setDate(now.getDate() + (dayIdx - todayDow));
+        const nextDay = DAYS[(dayIdx + 1) % 5];
+        const nextDayDate = new Date(dayDate);
+        nextDayDate.setDate(dayDate.getDate() + 1);
+        if (nextDayDate.getDay() === 6) nextDayDate.setDate(nextDayDate.getDate() + 2);
+        if (nextDayDate.getDay() === 0) nextDayDate.setDate(nextDayDate.getDate() + 1);
+        const sellWeekly = ETF_DB.filter(e => e.freq === "W" && e.exDay === day);
+        const sellMonthly = ETF_DB.filter(e => e.freq === "M" && e.exDayOfMonth).filter(e => {
+          const exd = getNextExDivDate(e);
+          return exd && exd.toDateString() === dayDate.toDateString();
+        });
+        const allSells = [...sellWeekly, ...sellMonthly].sort((a,b) => parseFloat(compositeScore(b)) - parseFloat(compositeScore(a)));
+        const buyWeekly = ETF_DB.filter(e => e.freq === "W" && e.exDay === nextDay);
+        const buyMonthly = getMonthlyBuySignalsForDate(nextDayDate);
+        const allBuys = [...buyWeekly, ...buyMonthly].sort((a,b) => parseFloat(compositeScore(b)) - parseFloat(compositeScore(a)));
         const isToday = day === today;
-        const totalActions = sellETFs.length + buyETFs.length;
+        const totalActions = allSells.length + allBuys.length;
+        const scoreBadge = (s) => {
+          const c = s >= 70 ? 'var(--green)' : s >= 50 ? 'var(--orange)' : 'var(--red)';
+          return '<span style="background:' + c + '22;color:' + c + ';padding:1px 4px;border-radius:3px;font-size:10px;font-weight:600">' + s + '</span>';
+        };
         return `
           <div class="cal-day ${isToday ? 'today' : ''}" style="min-height:180px">
             <div class="cal-day-header flex flex-between">
               <span>${day}${isToday ? ' (TODAY)' : ''}</span>
               <span class="text-xs text-muted">${totalActions} actions</span>
             </div>
-            ${sellETFs.length > 0 ? `
+            ${allSells.length > 0 ? `
               <div style="margin-bottom:8px">
-                <div class="text-xs fw-bold" style="color:var(--red);margin-bottom:4px">🔴 SELL (ex-div today) — ${sellETFs.length}</div>
-                ${sellETFs.map(e => `
+                <div class="text-xs fw-bold" style="color:var(--red);margin-bottom:4px">🔴 SELL (ex-div today) — ${allSells.length}</div>
+                ${allSells.map((e, i) => `
                   <div class="cal-etf" style="border-left:2px solid var(--red);padding-left:6px">
-                    <span>
+                    <span style="display:flex;align-items:center;gap:4px">
+                      <span style="color:var(--text-muted);font-size:10px;min-width:18px">#${i+1}</span>
                       <span class="fw-bold" style="color:var(--red)">${e.t}</span>
-                      <span class="text-muted" style="margin-left:4px">${e.u}</span>
+                      ${e.freq === "M" ? '<span style="background:#a78bfa22;color:#a78bfa;padding:0 3px;border-radius:2px;font-size:9px;font-weight:700">M</span>' : ''}
+                      ${scoreBadge(compositeScore(e))}
                     </span>
                     <span class="positive text-xs">+$${fmt(e.div)}</span>
                   </div>
                 `).join("")}
               </div>
             ` : ''}
-            ${buyETFs.length > 0 ? `
+            ${allBuys.length > 0 ? `
               <div>
-                <div class="text-xs fw-bold" style="color:var(--green);margin-bottom:4px">🟢 BUY (for ${nextDay} ex-div) — ${buyETFs.length}</div>
-                ${buyETFs.map(e => `
-                  <div class="cal-etf" style="border-left:2px solid var(--green);padding-left:6px">
-                    <span>
-                      <span class="fw-bold" style="color:var(--accent)">${e.t}</span>
-                      <span class="text-muted" style="margin-left:4px">${e.u}</span>
+                <div class="text-xs fw-bold" style="color:var(--green);margin-bottom:4px">🟢 BUY RANKED — ${allBuys.length}</div>
+                ${allBuys.map((e, i) => `
+                  <div class="cal-etf" style="border-left:2px solid ${i === 0 ? 'var(--gold, #f59e0b)' : i < 3 ? 'var(--green)' : 'var(--border)'};padding-left:6px">
+                    <span style="display:flex;align-items:center;gap:4px">
+                      <span style="color:${i < 3 ? 'var(--gold, #f59e0b)' : 'var(--text-muted)'};font-size:10px;min-width:18px;font-weight:${i < 3 ? '700' : '400'}">#${i+1}</span>
+                      <span class="fw-bold" style="color:${i < 3 ? 'var(--gold, #f59e0b)' : 'var(--accent)'}">${e.t}</span>
+                      ${e.freq === "M" ? '<span style="background:#a78bfa22;color:#a78bfa;padding:0 3px;border-radius:2px;font-size:9px;font-weight:700">M</span>' : ''}
+                      ${scoreBadge(compositeScore(e))}
                     </span>
                     <span class="positive text-xs">$${fmt(e.div)}</span>
                   </div>
                 `).join("")}
               </div>
             ` : ''}
-            ${totalActions === 0 ? '<div class="text-muted text-xs" style="padding:20px 0;text-align:center">No weekly actions</div>' : ''}
+            ${totalActions === 0 ? '<div class="text-muted text-xs" style="padding:20px 0;text-align:center">No actions this day</div>' : ''}
           </div>`;
       }).join("")}
     </div>
@@ -1242,27 +1266,74 @@ function renderCalendar() {
       </div>
     </div>
     <div class="mt-16 card">
-      <div class="card-title mb-12">📅 Monthly Dividend ETFs (Not in Weekly Rotation)</div>
-      <div class="text-xs text-muted mb-12">These ETFs pay monthly dividends. They are NOT part of the weekly capture rotation but provide supplemental income.</div>
-      <div class="table-wrap" style="max-height:400px">
-        <table>
-          <thead><tr><th>Ticker</th><th>Name</th><th>Underlying</th><th>Type</th><th>Price</th><th>Div/Share</th><th>Mo. Yield%</th><th>Ann. Yield%</th></tr></thead>
-          <tbody>
-            ${ETF_DB.filter(e => e.freq === "M").sort((a,b) => b.ay - a.ay).map(e => `
-              <tr>
-                <td class="fw-bold" style="color:var(--cyan)">${e.t}</td>
-                <td>${e.n}</td>
-                <td>${e.u}</td>
-                <td><span class="badge badge-blue">${e.type}</span></td>
-                <td>$${fmt(e.p)}</td>
-                <td>$${fmt(e.div)}</td>
-                <td class="positive">${fmt((e.div / e.p) * 100)}%</td>
-                <td class="positive fw-bold">${fmt(e.ay)}%</td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      </div>
+      <div class="card-title mb-12">📅 Monthly Ex-Dividend Schedule</div>
+      <div class="text-xs text-muted mb-12">Monthly ETFs are merged into the weekly calendar above on their buy day. Below is the full schedule for reference.</div>
+      ${(() => {
+        const monthlyETFs = ETF_DB.filter(e => e.freq === "M" && e.exDayOfMonth);
+        const groups = {};
+        monthlyETFs.forEach(e => {
+          const exDate = getNextExDivDate(e);
+          if (!exDate) return;
+          const key = exDate.toDateString();
+          if (!groups[key]) groups[key] = { date: exDate, etfs: [] };
+          groups[key].etfs.push(e);
+        });
+        const sorted = Object.values(groups).sort((a, b) => a.date - b.date);
+        const now = new Date();
+        const todayStr = now.toDateString();
+        const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
+        const tomorrowStr = tomorrow.toDateString();
+        const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+        const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
+          ${sorted.map(g => {
+            const ds = g.date.toDateString();
+            const diffMs = g.date.getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            const daysUntil = Math.round(diffMs / 86400000);
+            const isExDivToday = ds === todayStr;
+            const isBuyToday = ds === tomorrowStr;
+            const isPast = daysUntil < 0;
+            let badgeHTML, borderColor, headerBg, opacity;
+            if (isBuyToday) {
+              badgeHTML = '<span style="background:var(--green);color:#000;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">🟢 BUY TODAY</span>';
+              borderColor = 'var(--green)'; headerBg = 'var(--green-dim)'; opacity = '1';
+            } else if (isExDivToday) {
+              badgeHTML = '<span style="background:var(--red);color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">🔴 EX-DIV TODAY</span>';
+              borderColor = 'var(--red)'; headerBg = 'rgba(255,75,75,0.1)'; opacity = '1';
+            } else if (isPast) {
+              badgeHTML = '<span style="background:var(--bg-card);color:var(--text-muted);padding:2px 8px;border-radius:4px;font-size:11px">✅ Passed</span>';
+              borderColor = 'var(--border)'; headerBg = 'var(--bg-card)'; opacity = '0.5';
+            } else {
+              const buyDaysUntil = daysUntil - 1;
+              const buyLabel = buyDaysUntil <= 0 ? 'Buy now' : 'Buy in ' + buyDaysUntil + 'd';
+              badgeHTML = '<span style="background:rgba(160,120,255,0.15);color:#a78bfa;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">📅 ' + buyLabel + '</span>';
+              borderColor = '#a78bfa'; headerBg = 'rgba(160,120,255,0.08)'; opacity = '1';
+            }
+            const dateLabel = dayNames[g.date.getDay()] + ", " + monthNames[g.date.getMonth()] + " " + g.date.getDate();
+            return `<div style="border:1px solid ${borderColor};border-radius:8px;overflow:hidden;opacity:${opacity}">
+              <div style="background:${headerBg};padding:8px 10px;display:flex;justify-content:space-between;align-items:center">
+                <span class="fw-bold text-xs">${dateLabel}</span>
+                ${badgeHTML}
+              </div>
+              <div style="padding:8px 10px">
+                ${g.etfs.sort((a,b) => parseFloat(compositeScore(b)) - parseFloat(compositeScore(a))).map((e, i) => `
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)">
+                    <div style="display:flex;align-items:center;gap:4px">
+                      <span style="color:${i < 3 ? '#f59e0b' : 'var(--text-muted)'};font-size:10px;min-width:16px;font-weight:${i < 3 ? '700' : '400'}">#${i+1}</span>
+                      <span class="fw-bold" style="color:var(--cyan)">${e.t}</span>
+                      <span class="text-xs text-muted">${e.u}</span>
+                    </div>
+                    <div style="text-align:right">
+                      <span class="positive text-xs fw-bold">$${fmt(e.div)}</span>
+                      <span class="text-xs text-muted" style="margin-left:4px">${fmt(e.ay)}%</span>
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+            </div>`;
+          }).join("")}
+        </div>`;
+      })()}
     </div>
   `;
 }
