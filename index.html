@@ -250,7 +250,7 @@ input:focus, select:focus { outline:none; border-color: var(--accent); }
       <div class="nav-item" data-page="settings"><span class="icon">&#9881;</span> Settings</div>
     </div>
     <div class="sidebar-footer">
-      <div>RRJCAR v4.0</div>
+      <div>RRJCAR v5.0</div>
       <div style="margin-top:4px;" id="providerFooter">Live Data</div>
     </div>
   </div>
@@ -455,6 +455,7 @@ const STATE = {
   tradierKey: localStorage.getItem("dcp_tradierKey") || "",
   dataProvider: localStorage.getItem("dcp_dataProvider") || "finnhub",
   tradierEnv: localStorage.getItem("dcp_tradierEnv") || "sandbox",
+  tradeViewMode: localStorage.getItem("dcp_tradeViewMode") || "paired",
   chartTicker: "TSLY",
   chartDayFilter: "All",
   lastRefresh: localStorage.getItem("dcp_lastRefresh") || null,
@@ -498,6 +499,7 @@ function saveState() {
   localStorage.setItem("dcp_tradierKey", STATE.tradierKey);
   localStorage.setItem("dcp_dataProvider", STATE.dataProvider);
   localStorage.setItem("dcp_tradierEnv", STATE.tradierEnv);
+  localStorage.setItem("dcp_tradeViewMode", STATE.tradeViewMode);
   if (STATE.lastRefresh) localStorage.setItem("dcp_lastRefresh", STATE.lastRefresh);
 }
 
@@ -844,7 +846,7 @@ function removePosition(ticker) {
   if (pos) {
     const etf = ETF_DB.find(e => e.t === ticker);
     const sellPrice = etf ? etf.p : pos.avgCost;
-    STATE.tradeLog.push({ type: "SELL", ticker, shares: pos.shares, price: sellPrice, date: new Date().toISOString().split("T")[0], time: new Date().toLocaleTimeString(), pnl: (sellPrice - pos.avgCost) * pos.shares + (pos.divsCollected || 0) });
+    STATE.tradeLog.push({ type: "SELL", ticker, shares: pos.shares, price: sellPrice, date: new Date().toISOString().split("T")[0], time: new Date().toLocaleTimeString(), pnl: (sellPrice - pos.avgCost) * pos.shares });
     STATE.portfolio = STATE.portfolio.filter(p => p.ticker !== ticker);
     saveState();
   }
@@ -1686,6 +1688,115 @@ function renderActions() {
 }
 
 // ═══════════════════════════════════════════════════════
+// TRADE VIEW HELPERS
+// ═══════════════════════════════════════════════════════
+function buildTradePairs() {
+  const pairs = [];
+  const usedSells = new Set();
+  const usedDivs = new Set();
+  STATE.tradeLog.forEach((entry, idx) => {
+    if (entry.type !== "BUY") return;
+    // Find first unmatched SELL for same ticker after this BUY
+    let sellEntry = null, sellIdx = -1;
+    for (let s = idx + 1; s < STATE.tradeLog.length; s++) {
+      if (STATE.tradeLog[s].type === "SELL" && STATE.tradeLog[s].ticker === entry.ticker && !usedSells.has(s)) {
+        sellEntry = STATE.tradeLog[s]; sellIdx = s; usedSells.add(s); break;
+      }
+    }
+    // Find DIV entries between buy and sell
+    const divEntries = [];
+    const endIdx = sellIdx >= 0 ? sellIdx : STATE.tradeLog.length;
+    for (let d = idx + 1; d < endIdx; d++) {
+      if (STATE.tradeLog[d].type === "DIV" && STATE.tradeLog[d].ticker === entry.ticker && !usedDivs.has(d)) {
+        divEntries.push({ entry: STATE.tradeLog[d], idx: d }); usedDivs.add(d);
+      }
+    }
+    const totalDivs = divEntries.reduce((s, d) => s + (d.entry.pnl || 0), 0);
+    const pricePnl = sellEntry ? (sellEntry.price - entry.price) * entry.shares : 0;
+    const totalPnl = pricePnl + totalDivs;
+    const holdDays = sellEntry ? Math.round((new Date(sellEntry.date) - new Date(entry.date)) / 86400000) : Math.round((Date.now() - new Date(entry.date)) / 86400000);
+    const pctReturn = entry.price * entry.shares > 0 ? (totalPnl / (entry.price * entry.shares) * 100) : 0;
+    pairs.push({
+      buyEntry: entry, buyIdx: idx,
+      sellEntry, sellIdx,
+      divEntries, totalDivs,
+      ticker: entry.ticker,
+      status: sellEntry ? "closed" : "open",
+      pricePnl, totalPnl, holdDays, pctReturn
+    });
+  });
+  return pairs;
+}
+
+function renderPairedTrades() {
+  const pairs = buildTradePairs();
+  if (pairs.length === 0) return '<div class="text-muted text-sm" style="padding:16px">No trades recorded yet. Trades will appear here as buy/sell pairs.</div>';
+  return `<div class="table-wrap" style="max-height:400px">
+    <table>
+      <thead><tr>
+        <th>Ticker</th>
+        <th style="background:var(--green-dim);color:var(--green)">Buy Date</th>
+        <th style="background:var(--green-dim);color:var(--green)">Buy Price</th>
+        <th style="background:var(--green-dim);color:var(--green)">Shares</th>
+        <th style="background:var(--green-dim);color:var(--green)">Cost</th>
+        <th style="background:var(--red-dim);color:var(--red)">Sell Date</th>
+        <th style="background:var(--red-dim);color:var(--red)">Sell Price</th>
+        <th style="background:var(--red-dim);color:var(--red)">Proceeds</th>
+        <th>Div</th>
+        <th>Days</th>
+        <th>P&L</th>
+        <th>Return</th>
+        <th>Status</th>
+      </tr></thead>
+      <tbody>
+        ${pairs.slice().reverse().map(p => {
+          const cost = p.buyEntry.price * p.buyEntry.shares;
+          const proceeds = p.sellEntry ? p.sellEntry.price * p.sellEntry.shares : 0;
+          return `<tr style="cursor:pointer" onclick="showEditTradeModal(${p.buyIdx})" title="Click to edit buy entry">
+            <td class="fw-bold" style="color:var(--accent)">${p.ticker}</td>
+            <td>${p.buyEntry.date}</td>
+            <td>$${fmt(p.buyEntry.price)}</td>
+            <td>${p.buyEntry.shares}</td>
+            <td>$${fmt(cost)}</td>
+            <td>${p.sellEntry ? `<span onclick="event.stopPropagation();showEditTradeModal(${p.sellIdx})" style="cursor:pointer">${p.sellEntry.date}</span>` : '<span class="text-muted">—</span>'}</td>
+            <td>${p.sellEntry ? `$${fmt(p.sellEntry.price)}` : '<span class="text-muted">—</span>'}</td>
+            <td>${p.sellEntry ? `$${fmt(proceeds)}` : '<span class="text-muted">—</span>'}</td>
+            <td class="positive">${p.totalDivs > 0 ? '$' + fmt(p.totalDivs) : '<span class="text-muted">—</span>'}</td>
+            <td class="text-muted">${p.holdDays}d</td>
+            <td class="${pctClass(p.totalPnl)} fw-bold">${p.status === 'closed' ? fmtMoneySign(p.totalPnl) : '<span class="text-muted">—</span>'}</td>
+            <td class="${pctClass(p.pctReturn)}">${p.status === 'closed' ? fmt(p.pctReturn) + '%' : ''}</td>
+            <td><span class="badge ${p.status === 'open' ? 'badge-green' : 'badge-blue'}">${p.status === 'open' ? 'Open' : 'Closed'}</span></td>
+          </tr>`;
+        }).join("")}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function renderFlatTradeLog() {
+  return `<div class="table-wrap" style="max-height:400px">
+    <table>
+      <thead><tr><th>Date</th><th>Time</th><th>Type</th><th>Ticker</th><th>Shares</th><th>Price</th><th>P&L</th></tr></thead>
+      <tbody>
+        ${STATE.tradeLog.slice().reverse().map((log, i) => {
+          const realIdx = STATE.tradeLog.length - 1 - i;
+          return `<tr onclick="showEditTradeModal(${realIdx})" style="cursor:pointer" title="Click to edit">
+            <td>${log.date}</td>
+            <td class="text-muted">${log.time}</td>
+            <td><span class="badge ${log.type==='BUY'?'badge-green':log.type==='SELL'?'badge-red':'badge-yellow'}">${log.type}</span></td>
+            <td class="fw-bold">${log.ticker}</td>
+            <td>${log.shares}</td>
+            <td>$${fmt(log.price)}</td>
+            <td class="${log.pnl !== undefined ? pctClass(log.pnl) : ''}">${log.pnl !== undefined ? fmtMoneySign(log.pnl) : '—'}</td>
+          </tr>`;
+        }).join("")}
+        ${STATE.tradeLog.length === 0 ? '<tr><td colspan="7" class="text-center text-muted">No trades recorded yet</td></tr>' : ''}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
 // PAGE: PORTFOLIO
 // ═══════════════════════════════════════════════════════
 function renderPortfolio() {
@@ -1760,29 +1871,19 @@ function renderPortfolio() {
 
     <div class="card mt-16">
       <div class="card-header">
-        <span class="card-title">Trade Log</span>
-        <button class="btn btn-sm" onclick="clearTradeLog()">Clear Log</button>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="card-title">Trade History</span>
+          <div style="display:flex;gap:2px">
+            <button class="btn btn-sm ${STATE.tradeViewMode==='paired'?'btn-primary':''}" onclick="STATE.tradeViewMode='paired';saveState();render()">Paired View</button>
+            <button class="btn btn-sm ${STATE.tradeViewMode==='log'?'btn-primary':''}" onclick="STATE.tradeViewMode='log';saveState();render()">Log View</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm" onclick="showEmailReportModal()">Email Report</button>
+          <button class="btn btn-sm" onclick="clearTradeLog()">Clear Log</button>
+        </div>
       </div>
-      <div class="table-wrap" style="max-height:300px">
-        <table>
-          <thead><tr><th>Date</th><th>Time</th><th>Type</th><th>Ticker</th><th>Shares</th><th>Price</th><th>P&L</th></tr></thead>
-          <tbody>
-            ${STATE.tradeLog.slice().reverse().map((log, i) => {
-              const realIdx = STATE.tradeLog.length - 1 - i;
-              return `<tr onclick="showEditTradeModal(${realIdx})" style="cursor:pointer" title="Click to edit">
-                <td>${log.date}</td>
-                <td class="text-muted">${log.time}</td>
-                <td><span class="badge ${log.type==='BUY'?'badge-green':log.type==='SELL'?'badge-red':'badge-yellow'}">${log.type}</span></td>
-                <td class="fw-bold">${log.ticker}</td>
-                <td>${log.shares}</td>
-                <td>$${fmt(log.price)}</td>
-                <td class="${log.pnl !== undefined ? pctClass(log.pnl) : ''}">${log.pnl !== undefined ? fmtMoneySign(log.pnl) : '—'}</td>
-              </tr>`;
-            }).join("")}
-            ${STATE.tradeLog.length === 0 ? '<tr><td colspan="7" class="text-center text-muted">No trades recorded yet</td></tr>' : ''}
-          </tbody>
-        </table>
-      </div>
+      ${STATE.tradeViewMode === 'paired' ? renderPairedTrades() : renderFlatTradeLog()}
     </div>
   `;
 }
@@ -2124,6 +2225,12 @@ function renderSettings() {
         </div>
         <div class="mb-12">
           <button class="btn" onclick="exportTradeLogCSV()">Export Trade Log (CSV)</button>
+        </div>
+        <div class="mb-12" style="border-top:1px solid var(--border);padding-top:12px">
+          <div class="text-xs text-muted mb-8" style="text-transform:uppercase;font-weight:600">Backup & Restore</div>
+          <button class="btn btn-primary" onclick="exportAllData()" style="margin-right:8px">Export All Data (JSON)</button>
+          <button class="btn" onclick="showImportModal()">Import Data (JSON)</button>
+          <div class="text-xs text-muted mt-8">Export saves portfolio, trades, journal & settings. Import into any RRJCAR dashboard to restore.</div>
         </div>
         <div class="mb-12" style="border-top:1px solid var(--border);padding-top:12px">
           <button class="btn btn-danger" onclick="if(confirm('Clear all portfolio data and trade history?')){STATE.portfolio=[];STATE.tradeLog=[];saveState();render();}">Reset Portfolio & Trades</button>
@@ -2681,6 +2788,13 @@ function confirmEditTrade(index) {
   trade.date = document.getElementById("editTradeDate").value;
   const pnlVal = document.getElementById("editTradePnl").value;
   trade.pnl = pnlVal !== "" ? parseFloat(pnlVal) : undefined;
+  // Auto-recalculate SELL P&L if price changed: find matching BUY entry
+  if (trade.type === "SELL") {
+    const buyEntry = STATE.tradeLog.find(t => t.type === "BUY" && t.ticker === trade.ticker && STATE.tradeLog.indexOf(t) < index);
+    if (buyEntry) {
+      trade.pnl = (trade.price - buyEntry.price) * trade.shares;
+    }
+  }
   saveState();
   document.getElementById("editTradeModal")?.remove();
   render();
@@ -2783,24 +2897,47 @@ function deleteJournalEntryModal(index) {
 // PAGE: TRADINGVIEW CHARTS
 // ═══════════════════════════════════════════════════════
 function renderCharts() {
-  const days = ["All","Mon","Tue","Wed","Thu","Fri"];
-  const filtered = STATE.chartDayFilter === "All" ? ETF_DB.filter(e => e.freq === "W") : ETF_DB.filter(e => e.exDay === STATE.chartDayFilter);
+  // Buy-date labels: buy day is the day BEFORE ex-div day
+  const buyDayMap = { Mon: "Fri", Tue: "Mon", Wed: "Tue", Thu: "Wed", Fri: "Thu" };
+  const exDayFromBuy = { Fri: "Mon", Mon: "Tue", Tue: "Wed", Wed: "Thu", Thu: "Fri" };
+  const buyDays = ["All", "Mon", "Tue", "Wed", "Thu", "Fri"];
+
+  let filtered;
+  if (STATE.chartDayFilter === "All") {
+    filtered = ETF_DB.filter(e => e.freq === "W");
+  } else {
+    // chartDayFilter stores buy day; convert to ex-div day for filtering
+    const targetExDay = exDayFromBuy[STATE.chartDayFilter];
+    filtered = ETF_DB.filter(e => e.freq === "W" && e.exDay === targetExDay);
+  }
   const sorted = [...filtered].sort((a,b) => compositeScore(b) - compositeScore(a));
   const selETF = ETF_DB.find(e => e.t === STATE.chartTicker);
   return `
     <div style="margin-bottom:12px">
       <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
-        ${days.map(d => `<button class="btn btn-sm ${STATE.chartDayFilter===d?'btn-primary':''}" onclick="STATE.chartDayFilter='${d}';render();loadTVWidget(STATE.chartTicker)">${d === "All" ? "All Days" : d + " Ex-Div"}</button>`).join("")}
-      </div>
-      <div style="display:flex;gap:4px;overflow-x:auto;padding:4px 0" class="ticker-scroller">
-        ${sorted.map(e => {
-          const sc = compositeScore(e);
-          const cls = STATE.chartTicker === e.t ? 'btn-primary' : '';
-          return `<button class="btn btn-sm ${cls}" style="white-space:nowrap;font-size:10px;padding:3px 8px" onclick="STATE.chartTicker='${e.t}';document.querySelectorAll('.ticker-scroller button').forEach(b=>b.classList.remove('btn-primary'));this.classList.add('btn-primary');loadTVWidget('${e.t}');document.getElementById('chartInfo').innerHTML=getChartInfo('${e.t}')">${e.t} <span style="opacity:0.6">${sc}</span></button>`;
-        }).join("")}
+        ${buyDays.map(d => `<button class="btn btn-sm ${STATE.chartDayFilter===d?'btn-primary':''}" onclick="STATE.chartDayFilter='${d}';render();loadTVWidget(STATE.chartTicker)">${d === "All" ? "All Days" : d + " Buy"}</button>`).join("")}
       </div>
     </div>
-    <div id="tv-widget" style="height:480px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border);overflow:hidden;margin-bottom:12px"></div>
+    <div style="display:grid;grid-template-columns:210px 1fr;gap:12px;margin-bottom:12px">
+      <div style="max-height:520px;overflow-y:auto;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px">
+        <div class="text-xs text-muted fw-bold" style="padding:4px 6px;margin-bottom:4px;border-bottom:1px solid var(--border)">RANK — TICKER — SCORE</div>
+        ${sorted.map((e, i) => {
+          const sc = compositeScore(e);
+          const isActive = STATE.chartTicker === e.t;
+          const scColor = sc >= 70 ? 'var(--green)' : sc >= 50 ? 'var(--yellow)' : 'var(--orange)';
+          const buyDay = buyDayMap[e.exDay] || '?';
+          return `<div onclick="STATE.chartTicker='${e.t}';loadTVWidget('${e.t}');document.getElementById('chartInfo').innerHTML=getChartInfo('${e.t}');document.querySelectorAll('.ticker-list-item').forEach(el=>el.style.background='');this.style.background='var(--bg-card-hover)'" class="ticker-list-item" style="display:flex;align-items:center;gap:6px;padding:5px 6px;cursor:pointer;border-radius:4px;border-left:3px solid ${isActive ? 'var(--accent)' : 'transparent'};background:${isActive ? 'var(--bg-card-hover)' : ''};font-size:11px;transition:background 0.1s">
+            <span style="min-width:22px;color:var(--text-muted);font-size:10px">#${i+1}</span>
+            <span class="fw-bold" style="color:${isActive ? 'var(--accent)' : 'var(--text-primary)'}; min-width:44px">${e.t}</span>
+            <span style="color:${scColor};font-weight:600;font-size:10px">${sc}</span>
+            <span class="positive" style="margin-left:auto;font-size:10px">$${fmt(e.div)}</span>
+          </div>`;
+        }).join("")}
+      </div>
+      <div>
+        <div id="tv-widget" style="height:500px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border);overflow:hidden"></div>
+      </div>
+    </div>
     <div style="background:var(--bg-input);border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:10px;color:var(--text-muted)">
       EMAs (10/20/50) are added automatically. To customize colors or add indicators, use the chart's settings gear icon. Order blocks require TradingView Pro — not available in the free embed widget.
     </div>
@@ -2861,6 +2998,206 @@ function loadTVWidget(ticker) {
     support_host: "https://www.tradingview.com"
   });
   widgetDiv.appendChild(script);
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPORT / IMPORT ALL DATA
+// ═══════════════════════════════════════════════════════
+function exportAllData() {
+  const data = {
+    version: "5.0",
+    exportDate: new Date().toISOString(),
+    portfolio: STATE.portfolio,
+    tradeLog: STATE.tradeLog,
+    journal: STATE.journal,
+    settings: {
+      capital: STATE.capital,
+      riskProfile: STATE.riskProfile,
+      maxPositionPct: STATE.maxPositionPct,
+      maxPositions: STATE.maxPositions,
+      dataProvider: STATE.dataProvider
+    }
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `rrjcar-backup-${new Date().toISOString().split("T")[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function showImportModal() {
+  const existing = document.getElementById("importModal");
+  if (existing) existing.remove();
+  const modal = document.createElement("div");
+  modal.id = "importModal";
+  modal.className = "modal-overlay";
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div class="modal" style="max-width:480px">
+      <h3 style="margin:0 0 16px;font-size:15px">Import Dashboard Data</h3>
+      <div class="text-xs text-muted mb-12">Select a previously exported RRJCAR JSON backup file. This will restore your portfolio, trade history, journal, and settings.</div>
+      <div class="form-group">
+        <label>Select Backup File (.json)</label>
+        <input type="file" id="importFileInput" accept=".json" style="width:100%;padding:8px">
+      </div>
+      <div class="form-group">
+        <label>Import Mode</label>
+        <select id="importMode" style="width:100%">
+          <option value="replace">Replace All (overwrite current data)</option>
+          <option value="merge">Merge (append trades, skip duplicates)</option>
+        </select>
+      </div>
+      <div id="importPreview" style="display:none;background:var(--bg-input);padding:10px;border-radius:6px;margin-bottom:12px;font-size:11px"></div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-primary" onclick="confirmImport()" style="flex:1" disabled id="importConfirmBtn">Import</button>
+        <button class="btn" onclick="document.getElementById('importModal').remove()">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById("importFileInput").addEventListener("change", function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        const data = JSON.parse(ev.target.result);
+        window._importData = data;
+        const preview = document.getElementById("importPreview");
+        preview.style.display = "block";
+        preview.innerHTML = `
+          <div class="fw-bold mb-8" style="color:var(--green)">File loaded successfully</div>
+          <div>Version: ${data.version || 'unknown'}</div>
+          <div>Export Date: ${data.exportDate ? new Date(data.exportDate).toLocaleString() : 'unknown'}</div>
+          <div>Positions: ${(data.portfolio || []).length}</div>
+          <div>Trade Log Entries: ${(data.tradeLog || []).length}</div>
+          <div>Journal Entries: ${(data.journal || []).length}</div>
+          <div>Capital: $${data.settings?.capital?.toLocaleString() || 'N/A'}</div>`;
+        document.getElementById("importConfirmBtn").disabled = false;
+      } catch(err) {
+        const preview = document.getElementById("importPreview");
+        preview.style.display = "block";
+        preview.innerHTML = '<div style="color:var(--red)">Invalid JSON file. Please select a valid RRJCAR backup.</div>';
+        document.getElementById("importConfirmBtn").disabled = true;
+      }
+    };
+    reader.readAsText(file);
+  });
+}
+
+function confirmImport() {
+  const data = window._importData;
+  if (!data) return;
+  const mode = document.getElementById("importMode").value;
+  if (mode === "replace") {
+    STATE.portfolio = data.portfolio || [];
+    STATE.tradeLog = data.tradeLog || [];
+    STATE.journal = data.journal || [];
+    if (data.settings) {
+      STATE.capital = data.settings.capital || STATE.capital;
+      STATE.riskProfile = data.settings.riskProfile || STATE.riskProfile;
+      STATE.maxPositionPct = data.settings.maxPositionPct || STATE.maxPositionPct;
+      STATE.maxPositions = data.settings.maxPositions || STATE.maxPositions;
+    }
+  } else {
+    // Merge: append new trades, skip duplicates by matching date+ticker+type+price
+    const existingKey = t => `${t.date}|${t.ticker}|${t.type}|${t.price}`;
+    const existingKeys = new Set(STATE.tradeLog.map(existingKey));
+    (data.tradeLog || []).forEach(t => { if (!existingKeys.has(existingKey(t))) STATE.tradeLog.push(t); });
+    const existingJKeys = new Set(STATE.journal.map(j => `${j.date}|${j.text?.slice(0,50)}`));
+    (data.journal || []).forEach(j => { if (!existingJKeys.has(`${j.date}|${j.text?.slice(0,50)}`)) STATE.journal.push(j); });
+    // Merge portfolio: add new tickers, skip existing
+    const existingTickers = new Set(STATE.portfolio.map(p => p.ticker));
+    (data.portfolio || []).forEach(p => { if (!existingTickers.has(p.ticker)) STATE.portfolio.push(p); });
+  }
+  saveState();
+  document.getElementById("importModal")?.remove();
+  delete window._importData;
+  render();
+  alert("Data imported successfully!");
+}
+
+// ═══════════════════════════════════════════════════════
+// EMAIL TRADE REPORT
+// ═══════════════════════════════════════════════════════
+function showEmailReportModal() {
+  const existing = document.getElementById("emailReportModal");
+  if (existing) existing.remove();
+  const today = new Date().toISOString().split("T")[0];
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
+  const modal = document.createElement("div");
+  modal.id = "emailReportModal";
+  modal.className = "modal-overlay";
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div class="modal" style="max-width:560px">
+      <h3 style="margin:0 0 16px;font-size:15px">Email Trade Report</h3>
+      <div class="grid grid-2" style="gap:12px">
+        <div class="form-group"><label>From Date</label><input type="date" id="reportFrom" value="${thirtyDaysAgo}"></div>
+        <div class="form-group"><label>To Date</label><input type="date" id="reportTo" value="${today}"></div>
+      </div>
+      <button class="btn btn-sm mb-12" onclick="generateReportPreview()">Generate Report</button>
+      <div id="reportPreview" style="display:none;background:var(--bg-input);padding:12px;border-radius:6px;max-height:300px;overflow-y:auto;font-size:11px;white-space:pre-wrap;font-family:monospace;margin-bottom:12px"></div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn btn-primary" onclick="copyReportToClipboard()" id="copyReportBtn" disabled>Copy to Clipboard</button>
+        <button class="btn btn-success" onclick="openReportInEmail()" id="emailReportBtn" disabled>Open in Email</button>
+        <button class="btn" onclick="document.getElementById('emailReportModal').remove()" style="margin-left:auto">Close</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function generateReportPreview() {
+  const from = document.getElementById("reportFrom").value;
+  const to = document.getElementById("reportTo").value;
+  const trades = STATE.tradeLog.filter(t => t.date >= from && t.date <= to);
+  const buys = trades.filter(t => t.type === "BUY");
+  const sells = trades.filter(t => t.type === "SELL");
+  const divs = trades.filter(t => t.type === "DIV");
+  const totalPnl = sells.reduce((s, t) => s + (t.pnl || 0), 0);
+  const totalDivIncome = divs.reduce((s, t) => s + (t.pnl || 0), 0);
+  const wins = sells.filter(t => (t.pnl || 0) > 0).length;
+  const winRate = sells.length > 0 ? (wins / sells.length * 100).toFixed(1) : "N/A";
+
+  let report = `RRJCAR DIVIDEND CALENDAR — TRADE REPORT\n`;
+  report += `${"=".repeat(45)}\n`;
+  report += `Period: ${from} to ${to}\n`;
+  report += `Generated: ${new Date().toLocaleString()}\n\n`;
+  report += `SUMMARY\n${"-".repeat(30)}\n`;
+  report += `Total Trades: ${trades.length} (${buys.length} buys, ${sells.length} sells, ${divs.length} divs)\n`;
+  report += `Win Rate: ${winRate}%\n`;
+  report += `Trade P&L: $${totalPnl.toFixed(2)}\n`;
+  report += `Dividend Income: $${totalDivIncome.toFixed(2)}\n`;
+  report += `Total Income: $${(totalPnl + totalDivIncome).toFixed(2)}\n\n`;
+  report += `TRADE DETAIL\n${"-".repeat(30)}\n`;
+  report += `${"Date".padEnd(12)}${"Type".padEnd(6)}${"Ticker".padEnd(8)}${"Shares".padEnd(8)}${"Price".padEnd(10)}${"P&L".padEnd(10)}\n`;
+  trades.forEach(t => {
+    report += `${(t.date||"").padEnd(12)}${(t.type||"").padEnd(6)}${(t.ticker||"").padEnd(8)}${String(t.shares||"").padEnd(8)}${"$"+(t.price||0).toFixed(2).padEnd(9)}${t.pnl !== undefined ? "$"+t.pnl.toFixed(2) : "—"}\n`;
+  });
+
+  window._reportText = report;
+  window._reportSubject = `RRJCAR Trade Report ${from} to ${to}`;
+  document.getElementById("reportPreview").style.display = "block";
+  document.getElementById("reportPreview").textContent = report;
+  document.getElementById("copyReportBtn").disabled = false;
+  document.getElementById("emailReportBtn").disabled = false;
+}
+
+function copyReportToClipboard() {
+  if (!window._reportText) return;
+  navigator.clipboard.writeText(window._reportText).then(() => {
+    const btn = document.getElementById("copyReportBtn");
+    const orig = btn.textContent;
+    btn.textContent = "Copied!";
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
+}
+
+function openReportInEmail() {
+  if (!window._reportText) return;
+  const subject = encodeURIComponent(window._reportSubject || "RRJCAR Trade Report");
+  const body = encodeURIComponent(window._reportText);
+  window.open(`mailto:?subject=${subject}&body=${body}`, "_self");
 }
 
 // ═══════════════════════════════════════════════════════
