@@ -379,12 +379,19 @@ const ETF_DB = [
   {t:"TSYW",n:"Roundhill TLT WeeklyPay",u:"TLT",sec:"Fixed Income",type:"Bond CC",p:18.00,wy:0.40,ay:20.8,exDay:"Mon",div:0.072,vol:1.2,mom:45,navE:-5.8,tr:6.5,aum:50,er:0.99,risk:3,freq:"W",grp:"RH"},
   {t:"UBEW",n:"Roundhill UBER WeeklyPay",u:"UBER",sec:"Technology",type:"Single Stock",p:20.00,wy:0.55,ay:28.6,exDay:"Mon",div:0.110,vol:2.8,mom:58,navE:-10.5,tr:11.2,aum:55,er:0.99,risk:4,freq:"W",grp:"RH"},
   {t:"UNHW",n:"Roundhill UNH WeeklyPay",u:"UNH",sec:"Healthcare",type:"Single Stock",p:28.00,wy:0.30,ay:15.6,exDay:"Mon",div:0.084,vol:1.5,mom:55,navE:-3.8,tr:8.8,aum:45,er:0.99,risk:3,freq:"W",grp:"RH"},
+  {t:"TOPW",n:"Roundhill Top WeeklyPay FoF",u:"WeeklyPay Basket",sec:"Multi-Sector",type:"Fund of Funds",p:25.00,wy:0.80,ay:41.6,exDay:"Mon",div:0.200,vol:1.5,mom:60,navE:-6.5,tr:10.5,aum:100,er:0.99,risk:3,freq:"W",grp:"RH"},
 
   // ═══ WEEKLY: REX Growth & Income — Ex-div every TUESDAY ═══
   {t:"NVII",n:"REX NVDA Growth & Income",u:"NVDA",sec:"Semiconductors",type:"Single Stock",p:42.00,wy:0.60,ay:31.2,exDay:"Tue",div:0.252,vol:5.8,mom:72,navE:-10.5,tr:15.8,aum:180,er:0.65,risk:4,freq:"W",grp:"REX"},
   {t:"TSII",n:"REX TSLA Growth & Income",u:"TSLA",sec:"Auto/Tech",type:"Single Stock",p:22.00,wy:1.20,ay:62.4,exDay:"Tue",div:0.264,vol:8.5,mom:58,navE:-18.2,tr:12.5,aum:120,er:0.65,risk:5,freq:"W",grp:"REX"},
   {t:"COII",n:"REX COIN Growth & Income",u:"COIN",sec:"Crypto/Fintech",type:"Single Stock",p:18.00,wy:1.50,ay:78.0,exDay:"Tue",div:0.270,vol:9.8,mom:52,navE:-22.5,tr:14.2,aum:80,er:0.65,risk:5,freq:"W",grp:"REX"},
   {t:"MSII",n:"REX MSTR Growth & Income",u:"MSTR",sec:"Crypto/Tech",type:"Single Stock",p:15.00,wy:2.00,ay:104.0,exDay:"Tue",div:0.300,vol:11.5,mom:48,navE:-28.8,tr:15.5,aum:60,er:0.65,risk:5,freq:"W",grp:"REX"},
+  {t:"HOII",n:"REX HOOD Growth & Income",u:"HOOD",sec:"Fintech",type:"Single Stock",p:14.00,wy:1.30,ay:67.6,exDay:"Tue",div:0.182,vol:4.0,mom:55,navE:-16.5,tr:11.8,aum:40,er:0.65,risk:5,freq:"W",grp:"REX"},
+  {t:"LLII",n:"REX LLY Growth & Income",u:"LLY",sec:"Healthcare",type:"Single Stock",p:25.00,wy:0.45,ay:23.4,exDay:"Tue",div:0.113,vol:1.8,mom:62,navE:-5.2,tr:10.5,aum:35,er:0.65,risk:3,freq:"W",grp:"REX"},
+  {t:"PLTI",n:"REX PLTR Growth & Income",u:"PLTR",sec:"Technology",type:"Single Stock",p:20.00,wy:0.90,ay:46.8,exDay:"Tue",div:0.180,vol:4.5,mom:78,navE:-12.5,tr:14.2,aum:50,er:0.65,risk:4,freq:"W",grp:"REX"},
+  {t:"CWII",n:"REX CRWD Growth & Income",u:"CRWD",sec:"Technology",type:"Single Stock",p:22.00,wy:0.70,ay:36.4,exDay:"Tue",div:0.154,vol:2.5,mom:65,navE:-8.8,tr:12.5,aum:30,er:0.65,risk:4,freq:"W",grp:"REX"},
+  {t:"WMTI",n:"REX WMT Growth & Income",u:"WMT",sec:"Consumer",type:"Single Stock",p:28.00,wy:0.25,ay:13.0,exDay:"Tue",div:0.070,vol:1.2,mom:60,navE:-3.2,tr:9.5,aum:25,er:0.65,risk:2,freq:"W",grp:"REX"},
+  {t:"ULTI",n:"REX IncomeMax Strategies",u:"Multi-Stock",sec:"Multi-Sector",type:"Multi CC",p:18.00,wy:1.10,ay:57.2,exDay:"Tue",div:0.198,vol:2.0,mom:55,navE:-10.5,tr:11.2,aum:45,er:0.65,risk:4,freq:"W",grp:"REX"},
 
   // ═══ WEEKLY: GraniteShares YieldBOOST — Ex-div every FRIDAY ═══
   {t:"TSYY",n:"GraniteShares YieldBOOST TSLA",u:"TSLA",sec:"Auto/Tech",type:"Put Spread",p:4.00,wy:6.00,ay:312.0,exDay:"Fri",div:0.240,vol:12.0,mom:58,navE:-45.5,tr:10.5,aum:150,er:0.99,risk:5,freq:"W",grp:"GS"},
@@ -392,6 +399,19 @@ const ETF_DB = [
   {t:"COYY",n:"GraniteShares YieldBOOST COIN",u:"COIN",sec:"Crypto/Fintech",type:"Put Spread",p:5.00,wy:5.00,ay:260.0,exDay:"Fri",div:0.250,vol:11.2,mom:52,navE:-42.8,tr:11.5,aum:80,er:0.99,risk:5,freq:"W",grp:"GS"},
   {t:"XBTY",n:"GraniteShares YieldBOOST Bitcoin",u:"BTC",sec:"Crypto",type:"Put Spread",p:8.00,wy:3.30,ay:171.6,exDay:"Fri",div:0.264,vol:9.0,mom:55,navE:-32.5,tr:13.2,aum:60,er:0.99,risk:5,freq:"W",grp:"GS"},
   {t:"HOYY",n:"GraniteShares YieldBOOST HOOD",u:"HOOD",sec:"Fintech",type:"Put Spread",p:5.00,wy:3.00,ay:156.0,exDay:"Fri",div:0.150,vol:7.5,mom:58,navE:-30.2,tr:10.8,aum:40,er:0.99,risk:5,freq:"W",grp:"GS"},
+  {t:"AMYY",n:"GraniteShares YieldBOOST AMD",u:"AMD",sec:"Semiconductors",type:"Put Spread",p:5.50,wy:4.00,ay:208.0,exDay:"Fri",div:0.220,vol:6.0,mom:52,navE:-40.5,tr:9.8,aum:55,er:0.99,risk:5,freq:"W",grp:"GS"},
+  {t:"TQQY",n:"GraniteShares YieldBOOST QQQ",u:"QQQ",sec:"Technology",type:"Put Spread",p:8.00,wy:2.50,ay:130.0,exDay:"Fri",div:0.200,vol:4.5,mom:60,navE:-28.5,tr:12.2,aum:80,er:0.99,risk:5,freq:"W",grp:"GS"},
+  {t:"AZYY",n:"GraniteShares YieldBOOST MSFT",u:"MSFT",sec:"Technology",type:"Put Spread",p:7.00,wy:2.00,ay:104.0,exDay:"Fri",div:0.140,vol:3.5,mom:62,navE:-22.8,tr:11.5,aum:45,er:0.99,risk:5,freq:"W",grp:"GS"},
+  {t:"YSPY",n:"GraniteShares YieldBOOST SPY",u:"SPY",sec:"Multi-Sector",type:"Put Spread",p:9.00,wy:1.80,ay:93.6,exDay:"Fri",div:0.162,vol:3.0,mom:58,navE:-20.5,tr:10.8,aum:70,er:0.99,risk:5,freq:"W",grp:"GS"},
+  {t:"MTYY",n:"GraniteShares YieldBOOST META",u:"META",sec:"Technology",type:"Put Spread",p:6.50,wy:2.80,ay:145.6,exDay:"Fri",div:0.182,vol:5.5,mom:65,navE:-32.2,tr:11.8,aum:50,er:0.99,risk:5,freq:"W",grp:"GS"},
+  {t:"PLYY",n:"GraniteShares YieldBOOST PLTR",u:"PLTR",sec:"Technology",type:"Put Spread",p:5.00,wy:4.50,ay:234.0,exDay:"Fri",div:0.225,vol:7.0,mom:72,navE:-38.5,tr:12.5,aum:60,er:0.99,risk:5,freq:"W",grp:"GS"},
+  {t:"SMYY",n:"GraniteShares YieldBOOST SMCI",u:"SMCI",sec:"Technology",type:"Put Spread",p:4.00,wy:5.50,ay:286.0,exDay:"Fri",div:0.220,vol:8.5,mom:45,navE:-48.2,tr:8.5,aum:35,er:0.99,risk:5,freq:"W",grp:"GS"},
+  {t:"IOYY",n:"GraniteShares YieldBOOST IONQ",u:"IONQ",sec:"Technology",type:"Put Spread",p:3.50,wy:6.00,ay:312.0,exDay:"Fri",div:0.210,vol:5.0,mom:42,navE:-50.5,tr:7.8,aum:25,er:0.99,risk:5,freq:"W",grp:"GS"},
+  {t:"MAAY",n:"GraniteShares YieldBOOST MARA",u:"MARA",sec:"Crypto",type:"Put Spread",p:4.50,wy:5.00,ay:260.0,exDay:"Fri",div:0.225,vol:7.5,mom:48,navE:-42.8,tr:9.2,aum:30,er:0.99,risk:5,freq:"W",grp:"GS"},
+  {t:"NUGY",n:"GraniteShares YieldBOOST Gold Miners",u:"Gold Miners",sec:"Materials",type:"Put Spread",p:6.00,wy:2.50,ay:130.0,exDay:"Fri",div:0.150,vol:2.5,mom:58,navE:-25.2,tr:10.5,aum:20,er:0.99,risk:5,freq:"W",grp:"GS"},
+  {t:"SEMY",n:"GraniteShares YieldBOOST Semis",u:"Semiconductors",sec:"Semiconductors",type:"Put Spread",p:7.00,wy:3.00,ay:156.0,exDay:"Fri",div:0.210,vol:4.0,mom:62,navE:-30.5,tr:11.2,aum:25,er:0.99,risk:5,freq:"W",grp:"GS"},
+  {t:"YBST",n:"GraniteShares YieldBOOST Universe",u:"Multi-Basket",sec:"Multi-Sector",type:"Put Spread",p:10.00,wy:2.10,ay:109.2,exDay:"Fri",div:0.210,vol:1.5,mom:55,navE:-22.5,tr:10.8,aum:35,er:0.99,risk:5,freq:"W",grp:"GS"},
+  {t:"YBTY",n:"GraniteShares YieldBOOST TopYielders",u:"Top Yield Basket",sec:"Multi-Sector",type:"Put Spread",p:9.00,wy:2.60,ay:135.2,exDay:"Fri",div:0.234,vol:1.8,mom:52,navE:-28.5,tr:10.2,aum:30,er:0.99,risk:5,freq:"W",grp:"GS"},
 
   // ═══ MONTHLY: JPMorgan — Ex-div ~1st of month ═══
   {t:"JEPI",n:"JPMorgan Equity Premium Income",u:"S&P 500",sec:"Multi-Sector",type:"Index CC",p:57.20,wy:0.14,ay:7.4,exDay:"monthly",div:0.351,vol:8.2,mom:68,navE:-1.2,tr:6.8,aum:35000,er:0.35,risk:2,freq:"M",exDayOfMonth:1},
