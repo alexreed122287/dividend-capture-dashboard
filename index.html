@@ -861,24 +861,40 @@ function addPosition(ticker, shares, cost) {
   saveState();
 }
 
-function removePosition(ticker) {
+function removePosition(ticker, sellPrice, sellShares, divAmount) {
   const pos = STATE.portfolio.find(p => p.ticker === ticker);
   if (pos) {
     const etf = ETF_DB.find(e => e.t === ticker);
-    const sellPrice = etf ? etf.p : pos.avgCost;
-    STATE.tradeLog.push({ type: "SELL", ticker, shares: pos.shares, price: sellPrice, date: new Date().toISOString().split("T")[0], time: new Date().toLocaleTimeString(), pnl: (sellPrice - pos.avgCost) * pos.shares });
-    STATE.portfolio = STATE.portfolio.filter(p => p.ticker !== ticker);
+    const price = sellPrice ?? (etf ? etf.p : pos.avgCost);
+    const shares = sellShares ?? pos.shares;
+    const pnl = (price - pos.avgCost) * shares;
+    const today = new Date().toISOString().split("T")[0];
+    const time = new Date().toLocaleTimeString();
+    // Log dividend first if provided
+    if (divAmount && divAmount > 0) {
+      const divPerShare = divAmount / shares;
+      pos.divsCollected = (pos.divsCollected || 0) + divAmount;
+      STATE.tradeLog.push({ type: "DIV", ticker, shares, price: parseFloat(divPerShare.toFixed(4)), date: today, time, pnl: divAmount });
+    }
+    // Log SELL — P&L is price-only (no dividend included)
+    STATE.tradeLog.push({ type: "SELL", ticker, shares, price, date: today, time, pnl });
+    // Remove from portfolio (partial sell support)
+    if (shares >= pos.shares) {
+      STATE.portfolio = STATE.portfolio.filter(p => p.ticker !== ticker);
+    } else {
+      pos.shares -= shares;
+    }
     saveState();
   }
 }
 
-function collectDividend(ticker) {
+function collectDividend(ticker, divPerShare, shares) {
   const pos = STATE.portfolio.find(p => p.ticker === ticker);
-  const etf = ETF_DB.find(e => e.t === ticker);
-  if (pos && etf) {
-    const divAmount = etf.div * pos.shares;
+  if (pos && divPerShare > 0) {
+    const sh = shares ?? pos.shares;
+    const divAmount = divPerShare * sh;
     pos.divsCollected = (pos.divsCollected || 0) + divAmount;
-    STATE.tradeLog.push({ type: "DIV", ticker, shares: pos.shares, price: etf.div, date: new Date().toISOString().split("T")[0], time: new Date().toLocaleTimeString(), pnl: divAmount });
+    STATE.tradeLog.push({ type: "DIV", ticker, shares: sh, price: parseFloat(divPerShare.toFixed(4)), date: new Date().toISOString().split("T")[0], time: new Date().toLocaleTimeString(), pnl: divAmount });
     saveState();
     return divAmount;
   }
@@ -2442,16 +2458,172 @@ function doBuyAll() {
 }
 
 function doSell(ticker) {
-  if (confirm(`SELL all shares of ${ticker}?`)) {
-    removePosition(ticker);
-    render();
+  showSellModal(ticker);
+}
+
+function showSellModal(ticker) {
+  const existing = document.getElementById("sellModal");
+  if (existing) existing.remove();
+  const pos = STATE.portfolio.find(p => p.ticker === ticker);
+  if (!pos) return;
+  const etf = ETF_DB.find(e => e.t === ticker);
+  const currentPrice = etf ? etf.p : pos.avgCost;
+  const divPerShare = etf ? etf.div : 0;
+  const modal = document.createElement("div");
+  modal.id = "sellModal";
+  modal.className = "modal-overlay";
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div class="modal" style="max-width:480px">
+      <h3 style="margin:0 0 6px;font-size:15px">Sell ${ticker}</h3>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px">${etf ? etf.n : ticker} | Avg Cost: $${fmt(pos.avgCost)} | Held: ${pos.shares} shares</div>
+      <div class="grid grid-2" style="gap:12px">
+        <div class="form-group"><label>Sell Price</label><input type="number" id="sellModalPrice" value="${fmt(currentPrice)}" step="0.01" min="0"></div>
+        <div class="form-group"><label>Shares to Sell</label><input type="number" id="sellModalShares" value="${pos.shares}" min="1" max="${pos.shares}"></div>
+      </div>
+      <div style="border-top:1px solid var(--border);margin:12px 0;padding-top:12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <input type="checkbox" id="sellModalIncludeDiv" ${pos.divsCollected > 0 ? '' : 'checked'}>
+          <label for="sellModalIncludeDiv" style="font-size:12px;cursor:pointer">Include dividend with this sell</label>
+        </div>
+        <div class="grid grid-2" style="gap:12px" id="sellDivFields">
+          <div class="form-group"><label>Div Per Share ($)</label><input type="number" id="sellModalDivPerShare" value="${fmt(divPerShare)}" step="0.0001" min="0"></div>
+          <div class="form-group"><label>Total Div ($)</label><input type="number" id="sellModalDivTotal" value="${fmt(divPerShare * pos.shares)}" step="0.01" min="0" style="background:var(--bg-secondary)"></div>
+        </div>
+      </div>
+      <div class="live-calc" style="margin:12px 0">
+        <div style="color:var(--text-muted);font-size:10px;text-transform:uppercase;margin-bottom:6px">Trade Summary</div>
+        <div class="flex flex-between"><span>Sale Proceeds:</span> <span id="sellSummaryProceeds" class="fw-bold">$${fmt(currentPrice * pos.shares)}</span></div>
+        <div class="flex flex-between"><span>Price P&L:</span> <span id="sellSummaryPricePnl" style="color:${currentPrice >= pos.avgCost ? 'var(--green)' : 'var(--red)'}">$${fmt((currentPrice - pos.avgCost) * pos.shares)}</span></div>
+        <div class="flex flex-between"><span>Dividend:</span> <span id="sellSummaryDiv" class="positive">$${fmt(divPerShare * pos.shares)}</span></div>
+        <div class="flex flex-between" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)"><span class="fw-bold">Total Return:</span> <span id="sellSummaryTotal" class="fw-bold positive">$${fmt((currentPrice - pos.avgCost) * pos.shares + divPerShare * pos.shares)}</span></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-danger" onclick="confirmSellModal('${ticker}')" style="flex:1">Confirm Sell</button>
+        <button class="btn" onclick="document.getElementById('sellModal').remove()">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  // Wire live recalc
+  const priceEl = document.getElementById("sellModalPrice");
+  const sharesEl = document.getElementById("sellModalShares");
+  const inclDivEl = document.getElementById("sellModalIncludeDiv");
+  const divPsEl = document.getElementById("sellModalDivPerShare");
+  const divTotEl = document.getElementById("sellModalDivTotal");
+  const divFields = document.getElementById("sellDivFields");
+
+  function updateSellCalc(source) {
+    const price = parseFloat(priceEl.value) || 0;
+    const shares = parseInt(sharesEl.value) || 0;
+    const includeDiv = inclDivEl.checked;
+    divFields.style.opacity = includeDiv ? "1" : "0.35";
+    divPsEl.disabled = !includeDiv;
+    divTotEl.disabled = true; // always computed
+
+    let divPs = parseFloat(divPsEl.value) || 0;
+    if (source === "divTotal") {
+      const tot = parseFloat(divTotEl.value) || 0;
+      divPs = shares > 0 ? tot / shares : 0;
+      divPsEl.value = divPs.toFixed(4);
+    }
+    const divTotal = includeDiv ? divPs * shares : 0;
+    divTotEl.value = fmt(divTotal);
+
+    const proceeds = price * shares;
+    const pricePnl = (price - pos.avgCost) * shares;
+    const totalReturn = pricePnl + divTotal;
+
+    document.getElementById("sellSummaryProceeds").textContent = "$" + fmt(proceeds);
+    const pnlEl = document.getElementById("sellSummaryPricePnl");
+    pnlEl.textContent = (pricePnl >= 0 ? "+$" : "-$") + fmt(Math.abs(pricePnl));
+    pnlEl.style.color = pricePnl >= 0 ? "var(--green)" : "var(--red)";
+    document.getElementById("sellSummaryDiv").textContent = "$" + fmt(divTotal);
+    const totEl = document.getElementById("sellSummaryTotal");
+    totEl.textContent = (totalReturn >= 0 ? "+$" : "-$") + fmt(Math.abs(totalReturn));
+    totEl.style.color = totalReturn >= 0 ? "var(--green)" : "var(--red)";
   }
+
+  priceEl.addEventListener("input", () => updateSellCalc("price"));
+  sharesEl.addEventListener("input", () => updateSellCalc("shares"));
+  inclDivEl.addEventListener("change", () => updateSellCalc("checkbox"));
+  divPsEl.addEventListener("input", () => updateSellCalc("divPs"));
+  // Allow editing total div too
+  divTotEl.disabled = false;
+  divTotEl.addEventListener("input", () => updateSellCalc("divTotal"));
+  updateSellCalc("init");
+}
+
+function confirmSellModal(ticker) {
+  const price = parseFloat(document.getElementById("sellModalPrice").value);
+  const shares = parseInt(document.getElementById("sellModalShares").value);
+  const includeDiv = document.getElementById("sellModalIncludeDiv").checked;
+  const divPs = parseFloat(document.getElementById("sellModalDivPerShare").value) || 0;
+  if (!price || price <= 0 || !shares || shares < 1) { alert("Enter valid price and shares."); return; }
+  const divAmount = includeDiv ? divPs * shares : 0;
+  removePosition(ticker, price, shares, divAmount);
+  document.getElementById("sellModal")?.remove();
+  render();
 }
 
 function doCollectDiv(ticker) {
-  const amt = collectDividend(ticker);
-  if (amt > 0) { alert(`Collected $${fmt(amt)} dividend from ${ticker}`); render(); }
-  else alert("No dividend to collect or position not found.");
+  showDivModal(ticker);
+}
+
+function showDivModal(ticker) {
+  const existing = document.getElementById("divModal");
+  if (existing) existing.remove();
+  const pos = STATE.portfolio.find(p => p.ticker === ticker);
+  if (!pos) { alert("Position not found."); return; }
+  const etf = ETF_DB.find(e => e.t === ticker);
+  const divPerShare = etf ? etf.div : 0;
+  const modal = document.createElement("div");
+  modal.id = "divModal";
+  modal.className = "modal-overlay";
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div class="modal" style="max-width:400px">
+      <h3 style="margin:0 0 6px;font-size:15px">Collect Dividend — ${ticker}</h3>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px">${etf ? etf.n : ticker} | ${pos.shares} shares | Previously collected: $${fmt(pos.divsCollected || 0)}</div>
+      <div class="grid grid-2" style="gap:12px">
+        <div class="form-group"><label>Div Per Share ($)</label><input type="number" id="divModalPerShare" value="${fmt(divPerShare)}" step="0.0001" min="0"></div>
+        <div class="form-group"><label>Total Dividend ($)</label><input type="number" id="divModalTotal" value="${fmt(divPerShare * pos.shares)}" step="0.01" min="0"></div>
+      </div>
+      <div class="form-group"><label>Shares</label><input type="number" id="divModalShares" value="${pos.shares}" min="1" max="${pos.shares}"></div>
+      <div class="form-group"><label>Date</label><input type="date" id="divModalDate" value="${new Date().toISOString().split('T')[0]}"></div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-success" onclick="confirmDivModal('${ticker}')" style="flex:1">Collect Dividend</button>
+        <button class="btn" onclick="document.getElementById('divModal').remove()">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  const psEl = document.getElementById("divModalPerShare");
+  const totEl = document.getElementById("divModalTotal");
+  const shEl = document.getElementById("divModalShares");
+
+  function updateDivCalc(source) {
+    const shares = parseInt(shEl.value) || 0;
+    if (source === "total") {
+      const tot = parseFloat(totEl.value) || 0;
+      psEl.value = shares > 0 ? (tot / shares).toFixed(4) : "0";
+    } else {
+      const ps = parseFloat(psEl.value) || 0;
+      totEl.value = fmt(ps * shares);
+    }
+  }
+  psEl.addEventListener("input", () => updateDivCalc("perShare"));
+  shEl.addEventListener("input", () => updateDivCalc("shares"));
+  totEl.addEventListener("input", () => updateDivCalc("total"));
+}
+
+function confirmDivModal(ticker) {
+  const divPerShare = parseFloat(document.getElementById("divModalPerShare").value);
+  const shares = parseInt(document.getElementById("divModalShares").value);
+  if (!divPerShare || divPerShare <= 0) { alert("Enter a valid dividend amount."); return; }
+  const amt = collectDividend(ticker, divPerShare, shares);
+  if (amt > 0) { document.getElementById("divModal")?.remove(); render(); }
+  else alert("Could not collect dividend.");
 }
 
 function clearTradeLog() {
@@ -2761,34 +2933,60 @@ function showEditTradeModal(index) {
   const trade = STATE.tradeLog[index];
   if (!trade) return;
   const tickers = ETF_DB.map(e => e.t).sort();
+
+  // Find paired BUY for this SELL, or paired SELL for this BUY
+  let pairedBuy = null, pairedSell = null, pairedDiv = null;
+  if (trade.type === "SELL") {
+    pairedBuy = STATE.tradeLog.find((t, i) => t.type === "BUY" && t.ticker === trade.ticker && i < index);
+  } else if (trade.type === "BUY") {
+    pairedSell = STATE.tradeLog.find((t, i) => t.type === "SELL" && t.ticker === trade.ticker && i > index);
+    pairedDiv = STATE.tradeLog.find((t, i) => t.type === "DIV" && t.ticker === trade.ticker && i > index && (!pairedSell || i < STATE.tradeLog.indexOf(pairedSell)));
+  }
+
   const modal = document.createElement("div");
   modal.id = "editTradeModal";
   modal.className = "modal-overlay";
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
   modal.innerHTML = `
-    <div class="modal" style="max-width:440px">
-      <h3 style="margin:0 0 16px;font-size:15px">Edit Trade Entry</h3>
-      <div class="form-group">
-        <label>Type</label>
-        <select id="editTradeType">
-          <option value="BUY" ${trade.type==="BUY"?"selected":""}>BUY</option>
-          <option value="SELL" ${trade.type==="SELL"?"selected":""}>SELL</option>
-          <option value="DIV" ${trade.type==="DIV"?"selected":""}>DIV</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Ticker</label>
-        <select id="editTradeTicker">
-          ${tickers.map(t => `<option value="${t}" ${t===trade.ticker?"selected":""}>${t}</option>`).join("")}
-        </select>
+    <div class="modal" style="max-width:480px">
+      <h3 style="margin:0 0 6px;font-size:15px">Edit Trade Entry</h3>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px">
+        ${trade.type} ${trade.ticker} — ${trade.date}
+        ${pairedBuy ? ' | Paired BUY @ $' + fmt(pairedBuy.price) : ''}
+        ${pairedSell ? ' | Paired SELL @ $' + fmt(pairedSell.price) : ''}
       </div>
       <div class="grid grid-2" style="gap:12px">
+        <div class="form-group">
+          <label>Type</label>
+          <select id="editTradeType">
+            <option value="BUY" ${trade.type==="BUY"?"selected":""}>BUY</option>
+            <option value="SELL" ${trade.type==="SELL"?"selected":""}>SELL</option>
+            <option value="DIV" ${trade.type==="DIV"?"selected":""}>DIV</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Ticker</label>
+          <select id="editTradeTicker">
+            ${tickers.map(t => `<option value="${t}" ${t===trade.ticker?"selected":""}>${t}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-2" style="gap:12px">
+        <div class="form-group"><label>${trade.type === "DIV" ? "Div/Share" : "Price"}</label><input type="number" id="editTradePrice" value="${trade.price}" step="0.0001" min="0"></div>
         <div class="form-group"><label>Shares</label><input type="number" id="editTradeShares" value="${trade.shares}" min="1"></div>
-        <div class="form-group"><label>Price</label><input type="number" id="editTradePrice" value="${trade.price}" step="0.01" min="0"></div>
       </div>
       <div class="grid grid-2" style="gap:12px">
         <div class="form-group"><label>Date</label><input type="date" id="editTradeDate" value="${trade.date}"></div>
-        <div class="form-group"><label>P&L (optional)</label><input type="number" id="editTradePnl" value="${trade.pnl ?? ''}" step="0.01"></div>
+        <div class="form-group"><label>Time</label><input type="text" id="editTradeTime" value="${trade.time || ''}" placeholder="HH:MM:SS"></div>
+      </div>
+      <div class="live-calc" style="margin:12px 0" id="editTradeSummary">
+        <div style="color:var(--text-muted);font-size:10px;text-transform:uppercase;margin-bottom:6px">Calculated P&L</div>
+        <div class="flex flex-between"><span>P&L:</span> <span id="editTradePnlCalc" class="fw-bold">${trade.pnl !== undefined ? '$' + fmt(trade.pnl) : '—'}</span></div>
+        <div style="margin-top:6px;font-size:10px;color:var(--text-muted)" id="editTradePnlExplain"></div>
+      </div>
+      <div class="form-group">
+        <label>P&L Override (leave blank for auto-calc)</label>
+        <input type="number" id="editTradePnl" value="" step="0.01" placeholder="Auto-calculated">
       </div>
       <div style="display:flex;gap:8px;margin-top:16px">
         <button class="btn btn-primary" onclick="confirmEditTrade(${index})" style="flex:1">Save</button>
@@ -2797,25 +2995,78 @@ function showEditTradeModal(index) {
       </div>
     </div>`;
   document.body.appendChild(modal);
+
+  // Store paired info for recalc
+  window._editTradeContext = { index, pairedBuy, pairedSell, pairedDiv };
+
+  // Wire live P&L recalculation
+  const typeEl = document.getElementById("editTradeType");
+  const priceEl = document.getElementById("editTradePrice");
+  const sharesEl = document.getElementById("editTradeShares");
+
+  function recalcEditPnl() {
+    const type = typeEl.value;
+    const price = parseFloat(priceEl.value) || 0;
+    const shares = parseInt(sharesEl.value) || 0;
+    let pnl = 0, explain = "";
+    if (type === "DIV") {
+      pnl = price * shares;
+      explain = `${shares} shares × $${price.toFixed(4)}/share = $${fmt(pnl)}`;
+    } else if (type === "SELL" && pairedBuy) {
+      pnl = (price - pairedBuy.price) * shares;
+      explain = `(Sell $${fmt(price)} − Buy $${fmt(pairedBuy.price)}) × ${shares} = $${fmt(pnl)}`;
+    } else if (type === "BUY" && pairedSell) {
+      pnl = (pairedSell.price - price) * shares;
+      explain = `(Sell $${fmt(pairedSell.price)} − Buy $${fmt(price)}) × ${shares} = $${fmt(pnl)} [updates SELL entry too]`;
+    } else {
+      explain = "No paired trade found — enter P&L manually or leave blank";
+    }
+    const calcEl = document.getElementById("editTradePnlCalc");
+    calcEl.textContent = (pnl >= 0 ? "+$" : "-$") + fmt(Math.abs(pnl));
+    calcEl.style.color = pnl >= 0 ? "var(--green)" : "var(--red)";
+    document.getElementById("editTradePnlExplain").textContent = explain;
+  }
+  typeEl.addEventListener("change", recalcEditPnl);
+  priceEl.addEventListener("input", recalcEditPnl);
+  sharesEl.addEventListener("input", recalcEditPnl);
+  recalcEditPnl();
 }
+
 function confirmEditTrade(index) {
   const trade = STATE.tradeLog[index];
   if (!trade) return;
+  const ctx = window._editTradeContext || {};
+
   trade.type = document.getElementById("editTradeType").value;
   trade.ticker = document.getElementById("editTradeTicker").value;
   trade.shares = parseInt(document.getElementById("editTradeShares").value) || 1;
   trade.price = parseFloat(document.getElementById("editTradePrice").value) || 0;
   trade.date = document.getElementById("editTradeDate").value;
-  const pnlVal = document.getElementById("editTradePnl").value;
-  trade.pnl = pnlVal !== "" ? parseFloat(pnlVal) : undefined;
-  // Auto-recalculate SELL P&L if price changed: find matching BUY entry
-  if (trade.type === "SELL") {
-    const buyEntry = STATE.tradeLog.find(t => t.type === "BUY" && t.ticker === trade.ticker && STATE.tradeLog.indexOf(t) < index);
+  const timeVal = document.getElementById("editTradeTime").value;
+  if (timeVal) trade.time = timeVal;
+
+  const pnlOverride = document.getElementById("editTradePnl").value;
+
+  // Auto-calculate P&L based on trade type and paired entries
+  if (pnlOverride !== "") {
+    trade.pnl = parseFloat(pnlOverride);
+  } else if (trade.type === "DIV") {
+    trade.pnl = trade.price * trade.shares;
+  } else if (trade.type === "SELL") {
+    const buyEntry = ctx.pairedBuy || STATE.tradeLog.find((t, i) => t.type === "BUY" && t.ticker === trade.ticker && i < index);
     if (buyEntry) {
       trade.pnl = (trade.price - buyEntry.price) * trade.shares;
     }
+  } else if (trade.type === "BUY") {
+    // If editing a BUY price, recalculate the paired SELL's P&L too
+    const sellEntry = ctx.pairedSell || STATE.tradeLog.find((t, i) => t.type === "SELL" && t.ticker === trade.ticker && i > index);
+    if (sellEntry) {
+      sellEntry.pnl = (sellEntry.price - trade.price) * sellEntry.shares;
+    }
   }
+
   saveState();
+  delete window._editTradeContext;
   document.getElementById("editTradeModal")?.remove();
   render();
 }
