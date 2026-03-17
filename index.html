@@ -246,11 +246,12 @@ input:focus, select:focus { outline:none; border-color: var(--accent); }
       <div class="nav-item" data-page="allocator"><span class="icon">&#9878;</span> Capital Allocator</div>
       <div class="nav-item" data-page="analytics"><span class="icon">&#9651;</span> Analytics</div>
       <div class="nav-item" data-page="journal"><span class="icon">&#9998;</span> Trade Journal</div>
+      <div class="nav-item" data-page="charts"><span class="icon">&#9636;</span> Charts</div>
       <div class="nav-item" data-page="settings"><span class="icon">&#9881;</span> Settings</div>
     </div>
     <div class="sidebar-footer">
-      <div>RRJCAR v3.0</div>
-      <div style="margin-top:4px;">Finnhub API powered</div>
+      <div>RRJCAR v4.0</div>
+      <div style="margin-top:4px;" id="providerFooter">Live Data</div>
     </div>
   </div>
 
@@ -291,6 +292,13 @@ const ETF_DB = [
   {t:"YMAX",n:"YieldMax Universe Fund",u:"YM Universe",sec:"Multi-Sector",type:"Multi CC",p:15.50,wy:0.52,ay:27.0,exDay:"Wed",div:0.0805,vol:4.2,mom:58,navE:-12.8,tr:12.2,aum:680,er:0.99,risk:4,freq:"W",grp:"YM1"},
   {t:"ULTY",n:"YieldMax Ultra Option Income",u:"Ultra Basket",sec:"Multi-Sector",type:"Multi CC",p:12.80,wy:3.75,ay:194.9,exDay:"Wed",div:0.4797,vol:3.5,mom:50,navE:-28.5,tr:10.5,aum:420,er:0.99,risk:5,freq:"W",grp:"YM1"},
   {t:"FIVY",n:"YieldMax Dorsey Wright CC",u:"Momentum Basket",sec:"Multi-Sector",type:"Multi CC",p:20.50,wy:0.78,ay:40.8,exDay:"Wed",div:0.1607,vol:1.2,mom:58,navE:-7.5,tr:9.8,aum:65,er:0.99,risk:3,freq:"W",grp:"YM1"},
+  {t:"GPTY",n:"YieldMax AI & Tech Portfolio",u:"AI/Tech Basket",sec:"Technology",type:"Multi CC",p:22.00,wy:0.65,ay:33.8,exDay:"Wed",div:0.1430,vol:2.5,mom:72,navE:-10.2,tr:12.5,aum:180,er:0.99,risk:4,freq:"W",grp:"YM1"},
+  {t:"SDTY",n:"YieldMax S&P 500 0DTE CC",u:"S&P 500",sec:"Multi-Sector",type:"0DTE",p:24.50,wy:0.45,ay:23.4,exDay:"Wed",div:0.1103,vol:1.8,mom:60,navE:-8.5,tr:10.8,aum:120,er:0.99,risk:3,freq:"W",grp:"YM1"},
+  {t:"QDTY",n:"YieldMax Nasdaq 100 0DTE CC",u:"NASDAQ 100",sec:"Technology",type:"0DTE",p:23.00,wy:0.55,ay:28.6,exDay:"Wed",div:0.1265,vol:2.0,mom:65,navE:-10.8,tr:12.2,aum:100,er:0.99,risk:4,freq:"W",grp:"YM1"},
+  {t:"RDTY",n:"YieldMax Russell 2000 0DTE CC",u:"Russell 2000",sec:"Small Cap",type:"0DTE",p:19.00,wy:0.70,ay:36.4,exDay:"Wed",div:0.1330,vol:1.2,mom:42,navE:-15.2,tr:9.5,aum:60,er:0.99,risk:4,freq:"W",grp:"YM1"},
+  {t:"CHPY",n:"YieldMax Semiconductor CC",u:"Semiconductor Basket",sec:"Semiconductors",type:"Multi CC",p:21.00,wy:0.60,ay:31.2,exDay:"Wed",div:0.1260,vol:1.5,mom:68,navE:-12.5,tr:13.8,aum:80,er:0.99,risk:4,freq:"W",grp:"YM1"},
+  {t:"YBTC",n:"Roundhill Bitcoin Covered Call",u:"BTC",sec:"Crypto",type:"Single Stock",p:18.50,wy:1.20,ay:62.4,exDay:"Wed",div:0.2220,vol:3.8,mom:58,navE:-20.5,tr:14.2,aum:200,er:0.95,risk:5,freq:"W",grp:"RH0"},
+  {t:"YETH",n:"Roundhill Ether Covered Call",u:"ETH",sec:"Crypto",type:"Single Stock",p:12.00,wy:1.50,ay:78.0,exDay:"Wed",div:0.1800,vol:2.2,mom:48,navE:-25.8,tr:10.5,aum:80,er:0.95,risk:5,freq:"W",grp:"RH0"},
 
   // ═══ WEEKLY: YieldMax Group 2 — Ex-div every THURSDAY ═══
   {t:"TSLY",n:"YieldMax TSLA Option Income",u:"TSLA",sec:"Auto/Tech",type:"Single Stock",p:11.80,wy:2.80,ay:145.5,exDay:"Thu",div:0.3302,vol:8.5,mom:62,navE:-28.5,tr:8.2,aum:1200,er:0.99,risk:5,freq:"W",grp:"YM2"},
@@ -327,6 +335,25 @@ const ETF_DB = [
   {t:"QDTE",n:"Roundhill Nasdaq 0DTE CC",u:"NASDAQ 100",sec:"Technology",type:"0DTE",p:38.00,wy:0.50,ay:26.0,exDay:"Thu",div:0.190,vol:2.2,mom:65,navE:-12.1,tr:14.8,aum:800,er:0.95,risk:4,freq:"W",grp:"RH0"},
   {t:"RDTE",n:"Roundhill R2000 0DTE CC",u:"Russell 2000",sec:"Small Cap",type:"0DTE",p:27.00,wy:0.60,ay:31.2,exDay:"Thu",div:0.162,vol:2.8,mom:42,navE:-15.8,tr:12.5,aum:300,er:0.95,risk:4,freq:"W",grp:"RH0"},
 
+  // ═══ WEEKLY: New Defiance — Ex-div every THURSDAY ═══
+  {t:"GLDY",n:"Defiance Gold Enhanced Options",u:"Gold/GLD",sec:"Materials",type:"0DTE",p:28.00,wy:0.45,ay:23.4,exDay:"Thu",div:0.126,vol:1.5,mom:62,navE:-8.5,tr:12.8,aum:120,er:0.99,risk:3,freq:"W",grp:"DEF"},
+  {t:"SPYT",n:"Defiance S&P 500 Income Target",u:"S&P 500",sec:"Multi-Sector",type:"0DTE",p:25.00,wy:0.38,ay:19.8,exDay:"Thu",div:0.095,vol:1.2,mom:58,navE:-6.2,tr:10.5,aum:200,er:0.87,risk:3,freq:"W",grp:"DEF"},
+  {t:"QQQT",n:"Defiance Nasdaq 100 Income Target",u:"NASDAQ 100",sec:"Technology",type:"0DTE",p:24.00,wy:0.42,ay:21.8,exDay:"Thu",div:0.101,vol:1.5,mom:62,navE:-8.8,tr:11.2,aum:150,er:0.87,risk:3,freq:"W",grp:"DEF"},
+
+  // ═══ WEEKLY: New YieldMax Group 2 — Ex-div every THURSDAY ═══
+  {t:"AIYY",n:"YieldMax C3.ai Option Income",u:"AI",sec:"Technology",type:"Single Stock",p:8.50,wy:2.80,ay:145.6,exDay:"Thu",div:0.238,vol:3.2,mom:42,navE:-32.5,tr:6.5,aum:45,er:0.99,risk:5,freq:"W",grp:"YM2"},
+  {t:"CVNY",n:"YieldMax CVNA Option Income",u:"CVNA",sec:"Consumer/Tech",type:"Single Stock",p:15.00,wy:1.80,ay:93.6,exDay:"Thu",div:0.270,vol:4.5,mom:55,navE:-22.8,tr:12.2,aum:60,er:0.99,risk:5,freq:"W",grp:"YM2"},
+  {t:"DRAY",n:"YieldMax DKNG Option Income",u:"DKNG",sec:"Consumer/Tech",type:"Single Stock",p:12.50,wy:1.50,ay:78.0,exDay:"Thu",div:0.188,vol:2.8,mom:50,navE:-18.5,tr:9.8,aum:40,er:0.99,risk:5,freq:"W",grp:"YM2"},
+  {t:"GDXY",n:"YieldMax GDX Option Income",u:"GDX",sec:"Materials",type:"Single Stock",p:18.00,wy:0.55,ay:28.6,exDay:"Thu",div:0.099,vol:1.8,mom:60,navE:-8.2,tr:11.5,aum:55,er:0.99,risk:4,freq:"W",grp:"YM2"},
+  {t:"GMEY",n:"YieldMax GME Option Income",u:"GME",sec:"Consumer/Tech",type:"Single Stock",p:7.50,wy:3.20,ay:166.4,exDay:"Thu",div:0.240,vol:5.5,mom:35,navE:-38.5,tr:4.8,aum:35,er:0.99,risk:5,freq:"W",grp:"YM2"},
+  {t:"HIYY",n:"YieldMax HIMS Option Income",u:"HIMS",sec:"Healthcare",type:"Single Stock",p:14.00,wy:1.40,ay:72.8,exDay:"Thu",div:0.196,vol:3.0,mom:58,navE:-15.8,tr:10.5,aum:50,er:0.99,risk:5,freq:"W",grp:"YM2"},
+  {t:"HOOY",n:"YieldMax HOOD Option Income",u:"HOOD",sec:"Fintech",type:"Single Stock",p:16.00,wy:1.20,ay:62.4,exDay:"Thu",div:0.192,vol:4.2,mom:55,navE:-16.5,tr:11.8,aum:65,er:0.99,risk:4,freq:"W",grp:"YM2"},
+  {t:"MARO",n:"YieldMax MARA Option Income",u:"MARA",sec:"Crypto",type:"Single Stock",p:10.00,wy:2.50,ay:130.0,exDay:"Thu",div:0.250,vol:6.0,mom:45,navE:-30.2,tr:8.5,aum:55,er:0.99,risk:5,freq:"W",grp:"YM2"},
+  {t:"RBLY",n:"YieldMax RBLX Option Income",u:"RBLX",sec:"Technology",type:"Single Stock",p:11.50,wy:1.30,ay:67.6,exDay:"Thu",div:0.150,vol:2.5,mom:48,navE:-18.8,tr:8.2,aum:30,er:0.99,risk:5,freq:"W",grp:"YM2"},
+  {t:"RDYY",n:"YieldMax RDDT Option Income",u:"RDDT",sec:"Communication",type:"Single Stock",p:13.00,wy:1.60,ay:83.2,exDay:"Thu",div:0.208,vol:3.5,mom:52,navE:-20.2,tr:9.5,aum:40,er:0.99,risk:5,freq:"W",grp:"YM2"},
+  {t:"TSMY",n:"YieldMax TSM Option Income",u:"TSM",sec:"Semiconductors",type:"Single Stock",p:20.00,wy:0.50,ay:26.0,exDay:"Thu",div:0.100,vol:2.0,mom:70,navE:-8.5,tr:14.2,aum:75,er:0.99,risk:4,freq:"W",grp:"YM2"},
+  {t:"XYZY",n:"YieldMax Block Option Income",u:"XYZ/SQ",sec:"Fintech",type:"Single Stock",p:11.00,wy:1.40,ay:72.8,exDay:"Thu",div:0.154,vol:2.2,mom:45,navE:-16.8,tr:8.8,aum:35,er:0.99,risk:5,freq:"W",grp:"YM2"},
+
   // ═══ WEEKLY: Roundhill WeeklyPay — Ex-div every MONDAY ═══
   {t:"NVDW",n:"Roundhill NVDA WeeklyPay",u:"NVDA",sec:"Semiconductors",type:"Single Stock",p:105.00,wy:1.00,ay:52.0,exDay:"Mon",div:1.050,vol:6.5,mom:75,navE:-15.2,tr:18.5,aum:450,er:0.99,risk:5,freq:"W",grp:"RH"},
   {t:"TSLW",n:"Roundhill TSLA WeeklyPay",u:"TSLA",sec:"Auto/Tech",type:"Single Stock",p:27.00,wy:1.70,ay:88.4,exDay:"Mon",div:0.459,vol:9.2,mom:62,navE:-22.5,tr:14.2,aum:380,er:0.99,risk:5,freq:"W",grp:"RH"},
@@ -339,6 +366,19 @@ const ETF_DB = [
   {t:"HOOW",n:"Roundhill HOOD WeeklyPay",u:"HOOD",sec:"Fintech",type:"Single Stock",p:18.00,wy:1.20,ay:62.4,exDay:"Mon",div:0.216,vol:5.8,mom:60,navE:-18.5,tr:12.2,aum:120,er:0.99,risk:4,freq:"W",grp:"RH"},
   {t:"PLTW",n:"Roundhill PLTR WeeklyPay",u:"PLTR",sec:"Technology",type:"Single Stock",p:20.00,wy:0.80,ay:41.6,exDay:"Mon",div:0.160,vol:5.0,mom:78,navE:-12.8,tr:15.5,aum:200,er:0.99,risk:4,freq:"W",grp:"RH"},
   {t:"QLDY",n:"Defiance QQQ LightningSpread",u:"NASDAQ 100",sec:"Technology",type:"Credit Spread",p:43.00,wy:0.40,ay:20.8,exDay:"Mon",div:0.172,vol:1.8,mom:62,navE:-5.5,tr:11.2,aum:350,er:0.99,risk:3,freq:"W",grp:"DEF2"},
+  {t:"AMDW",n:"Roundhill AMD WeeklyPay",u:"AMD",sec:"Semiconductors",type:"Single Stock",p:22.00,wy:1.50,ay:78.0,exDay:"Mon",div:0.330,vol:5.0,mom:55,navE:-18.0,tr:12.0,aum:100,er:0.99,risk:5,freq:"W",grp:"RH"},
+  {t:"ARMW",n:"Roundhill ARM WeeklyPay",u:"ARM",sec:"Semiconductors",type:"Single Stock",p:18.00,wy:1.20,ay:62.4,exDay:"Mon",div:0.216,vol:3.5,mom:62,navE:-15.5,tr:11.8,aum:60,er:0.99,risk:5,freq:"W",grp:"RH"},
+  {t:"AVGW",n:"Roundhill AVGO WeeklyPay",u:"AVGO",sec:"Semiconductors",type:"Single Stock",p:35.00,wy:0.60,ay:31.2,exDay:"Mon",div:0.210,vol:3.0,mom:72,navE:-8.8,tr:14.5,aum:120,er:0.99,risk:4,freq:"W",grp:"RH"},
+  {t:"BABW",n:"Roundhill BABA WeeklyPay",u:"BABA",sec:"Intl/China",type:"Single Stock",p:15.00,wy:1.80,ay:93.6,exDay:"Mon",div:0.270,vol:4.2,mom:42,navE:-20.5,tr:8.2,aum:50,er:0.99,risk:5,freq:"W",grp:"RH"},
+  {t:"BRKW",n:"Roundhill BRK.B WeeklyPay",u:"BRK.B",sec:"Financials",type:"Single Stock",p:30.00,wy:0.25,ay:13.0,exDay:"Mon",div:0.075,vol:1.5,mom:65,navE:-2.5,tr:10.8,aum:80,er:0.99,risk:2,freq:"W",grp:"RH"},
+  {t:"COSW",n:"Roundhill COST WeeklyPay",u:"COST",sec:"Consumer/Tech",type:"Single Stock",p:28.00,wy:0.30,ay:15.6,exDay:"Mon",div:0.084,vol:1.8,mom:62,navE:-4.2,tr:9.5,aum:60,er:0.99,risk:3,freq:"W",grp:"RH"},
+  {t:"GDXW",n:"Roundhill GDX WeeklyPay",u:"GDX",sec:"Materials",type:"Single Stock",p:20.00,wy:0.50,ay:26.0,exDay:"Mon",div:0.100,vol:2.5,mom:58,navE:-8.5,tr:11.2,aum:70,er:0.99,risk:4,freq:"W",grp:"RH"},
+  {t:"GLDW",n:"Roundhill Gold WeeklyPay",u:"GLD",sec:"Materials",type:"Single Stock",p:22.00,wy:0.35,ay:18.2,exDay:"Mon",div:0.077,vol:1.8,mom:60,navE:-5.2,tr:10.5,aum:65,er:0.99,risk:3,freq:"W",grp:"RH"},
+  {t:"MSFW",n:"Roundhill MSFT WeeklyPay",u:"MSFT",sec:"Technology",type:"Single Stock",p:30.00,wy:0.30,ay:15.6,exDay:"Mon",div:0.090,vol:2.2,mom:65,navE:-5.5,tr:10.2,aum:90,er:0.99,risk:3,freq:"W",grp:"RH"},
+  {t:"NFLW",n:"Roundhill NFLX WeeklyPay",u:"NFLX",sec:"Communication",type:"Single Stock",p:25.00,wy:0.45,ay:23.4,exDay:"Mon",div:0.113,vol:2.5,mom:68,navE:-9.2,tr:12.5,aum:75,er:0.99,risk:4,freq:"W",grp:"RH"},
+  {t:"TSYW",n:"Roundhill TLT WeeklyPay",u:"TLT",sec:"Fixed Income",type:"Bond CC",p:18.00,wy:0.40,ay:20.8,exDay:"Mon",div:0.072,vol:1.2,mom:45,navE:-5.8,tr:6.5,aum:50,er:0.99,risk:3,freq:"W",grp:"RH"},
+  {t:"UBEW",n:"Roundhill UBER WeeklyPay",u:"UBER",sec:"Technology",type:"Single Stock",p:20.00,wy:0.55,ay:28.6,exDay:"Mon",div:0.110,vol:2.8,mom:58,navE:-10.5,tr:11.2,aum:55,er:0.99,risk:4,freq:"W",grp:"RH"},
+  {t:"UNHW",n:"Roundhill UNH WeeklyPay",u:"UNH",sec:"Healthcare",type:"Single Stock",p:28.00,wy:0.30,ay:15.6,exDay:"Mon",div:0.084,vol:1.5,mom:55,navE:-3.8,tr:8.8,aum:45,er:0.99,risk:3,freq:"W",grp:"RH"},
 
   // ═══ WEEKLY: REX Growth & Income — Ex-div every TUESDAY ═══
   {t:"NVII",n:"REX NVDA Growth & Income",u:"NVDA",sec:"Semiconductors",type:"Single Stock",p:42.00,wy:0.60,ay:31.2,exDay:"Tue",div:0.252,vol:5.8,mom:72,navE:-10.5,tr:15.8,aum:180,er:0.65,risk:4,freq:"W",grp:"REX"},
@@ -380,6 +420,19 @@ const ETF_DB = [
   {t:"ISPY",n:"ProShares S&P 500 High Income",u:"S&P 500",sec:"Multi-Sector",type:"Index CC",p:48.80,wy:0.22,ay:11.4,exDay:"monthly",div:0.45,vol:1.2,mom:64,navE:-1.5,tr:8.5,aum:350,er:0.55,risk:2,freq:"M",exDayOfMonth:20},
   {t:"PUTW",n:"WisdomTree CBOE S&P 500 PutWrite",u:"S&P 500",sec:"Multi-Sector",type:"PutWrite",p:32.20,wy:0.18,ay:9.4,exDay:"monthly",div:0.25,vol:0.8,mom:58,navE:-1.2,tr:7.2,aum:220,er:0.44,risk:2,freq:"M",exDayOfMonth:20},
   {t:"HDIV",n:"ALPS High Dividend Enhanced",u:"Div Basket",sec:"Multi-Sector",type:"Div Enhanced",p:28.50,wy:0.15,ay:7.8,exDay:"monthly",div:0.18,vol:0.5,mom:55,navE:-0.8,tr:6.5,aum:150,er:0.58,risk:2,freq:"M",exDayOfMonth:15},
+
+  // ═══ MONTHLY: NEOS Enhanced Income ═══
+  {t:"IWMI",n:"NEOS Russell 2000 High Income",u:"Russell 2000",sec:"Small Cap",type:"Index CC",p:25.00,wy:0.23,ay:12.0,exDay:"monthly",div:0.25,vol:1.5,mom:42,navE:-3.5,tr:7.8,aum:400,er:0.68,risk:3,freq:"M",exDayOfMonth:18},
+  {t:"BTCI",n:"NEOS Bitcoin High Income",u:"BTC",sec:"Crypto",type:"Single Stock",p:38.00,wy:0.40,ay:20.8,exDay:"monthly",div:0.65,vol:3.5,mom:58,navE:-12.5,tr:15.2,aum:250,er:0.68,risk:5,freq:"M",exDayOfMonth:18},
+  {t:"CSHI",n:"NEOS Enhanced Income Cash Alt",u:"Cash/T-Bills",sec:"Fixed Income",type:"Vol Premium",p:50.00,wy:0.12,ay:6.0,exDay:"monthly",div:0.25,vol:1.0,mom:55,navE:0.2,tr:5.8,aum:1200,er:0.25,risk:1,freq:"M",exDayOfMonth:18},
+
+  // ═══ MONTHLY: ProShares High Income ═══
+  {t:"IQQQ",n:"ProShares Nasdaq-100 High Income",u:"NASDAQ 100",sec:"Technology",type:"0DTE",p:42.00,wy:0.25,ay:12.5,exDay:"monthly",div:0.44,vol:2.0,mom:65,navE:-4.2,tr:9.8,aum:600,er:0.55,risk:3,freq:"M",exDayOfMonth:20},
+  {t:"ITWO",n:"ProShares Russell 2000 High Income",u:"Russell 2000",sec:"Small Cap",type:"0DTE",p:35.00,wy:0.28,ay:14.0,exDay:"monthly",div:0.42,vol:1.5,mom:40,navE:-5.8,tr:8.2,aum:300,er:0.55,risk:3,freq:"M",exDayOfMonth:20},
+
+  // ═══ MONTHLY: Other New Monthly ═══
+  {t:"HIGH",n:"Simplify Enhanced Income",u:"Multi-Strategy",sec:"Multi-Sector",type:"Vol Premium",p:24.50,wy:0.15,ay:7.8,exDay:"monthly",div:0.16,vol:0.8,mom:58,navE:-1.2,tr:7.5,aum:180,er:0.51,risk:2,freq:"M",exDayOfMonth:15},
+  {t:"KNG",n:"FT S&P 500 Div Aristocrats Target",u:"Div Aristocrats",sec:"Multi-Sector",type:"Index CC",p:52.00,wy:0.08,ay:4.0,exDay:"monthly",div:0.17,vol:0.5,mom:58,navE:0.5,tr:8.5,aum:550,er:0.75,risk:1,freq:"M",exDayOfMonth:15},
 ];
 
 const DAYS = ["Mon","Tue","Wed","Thu","Fri"];
@@ -399,6 +452,11 @@ const STATE = {
   tradeLog: JSON.parse(localStorage.getItem("dcp_tradeLog") || "[]"),
   journal: JSON.parse(localStorage.getItem("dcp_journal") || "[]"),
   apiKey: localStorage.getItem("dcp_apiKey") || "",
+  tradierKey: localStorage.getItem("dcp_tradierKey") || "",
+  dataProvider: localStorage.getItem("dcp_dataProvider") || "finnhub",
+  tradierEnv: localStorage.getItem("dcp_tradierEnv") || "sandbox",
+  chartTicker: "TSLY",
+  chartDayFilter: "All",
   lastRefresh: localStorage.getItem("dcp_lastRefresh") || null,
   refreshing: false,
   sortCol: "mom",
@@ -437,6 +495,9 @@ function saveState() {
   localStorage.setItem("dcp_tradeLog", JSON.stringify(STATE.tradeLog));
   localStorage.setItem("dcp_journal", JSON.stringify(STATE.journal));
   localStorage.setItem("dcp_apiKey", STATE.apiKey);
+  localStorage.setItem("dcp_tradierKey", STATE.tradierKey);
+  localStorage.setItem("dcp_dataProvider", STATE.dataProvider);
+  localStorage.setItem("dcp_tradierEnv", STATE.tradierEnv);
   if (STATE.lastRefresh) localStorage.setItem("dcp_lastRefresh", STATE.lastRefresh);
 }
 
@@ -465,7 +526,7 @@ function getTodayDayName() {
   return DAYS[day - 1];
 }
 
-function getNextExDivDate(dayName) {
+function getNextWeekdayDate(dayName) {
   const dayIdx = DAYS.indexOf(dayName) + 1;
   const now = new Date();
   let d = new Date(now);
@@ -822,13 +883,14 @@ function updateRefreshUI(msg, pct, dotState) {
 
 async function fetchLiveData() {
   if (STATE.refreshing) return;
+  if (STATE.dataProvider === "tradier") return fetchTradierData();
   if (!STATE.apiKey) {
     STATE.page = "settings";
     document.querySelectorAll(".nav-item").forEach(i => {
       i.classList.toggle("active", i.dataset.page === "settings");
     });
     render();
-    alert("Enter your Finnhub API key in Settings first.\nGet a free key at https://finnhub.io");
+    alert("Enter your API key in Settings first.");
     return;
   }
 
@@ -895,7 +957,8 @@ async function fetchLiveData() {
 }
 
 function initLiveStatus() {
-  if (!STATE.apiKey) {
+  const activeKey = STATE.dataProvider === "tradier" ? STATE.tradierKey : STATE.apiKey;
+  if (!activeKey) {
     updateRefreshUI("No API key — set in Settings", -1, "offline");
   } else if (STATE.lastRefresh) {
     const ago = Math.round((Date.now() - new Date(STATE.lastRefresh).getTime()) / 60000);
@@ -930,6 +993,7 @@ function render() {
     case "allocator": content.innerHTML = renderAllocator(); break;
     case "analytics": content.innerHTML = renderAnalytics(); break;
     case "journal": content.innerHTML = renderJournal(); break;
+    case "charts": content.innerHTML = renderCharts(); loadTVWidget(STATE.chartTicker); break;
     case "settings": content.innerHTML = renderSettings(); break;
   }
   bindEvents();
@@ -1671,7 +1735,7 @@ function renderPortfolio() {
               const marketVal = curPrice * pos.shares;
               const pricePnL = (curPrice - pos.avgCost) * pos.shares;
               const totalPnL = pricePnL + (pos.divsCollected || 0);
-              return `<tr>
+              return `<tr onclick="showEditPositionModal('${pos.ticker}')" style="cursor:pointer" title="Click to edit position">
                 <td class="fw-bold" style="color:var(--accent)">${pos.ticker}</td>
                 <td>${etf ? etf.u : '—'}</td>
                 <td>${pos.shares}</td>
@@ -1684,8 +1748,8 @@ function renderPortfolio() {
                 <td>${etf ? etf.exDay : '—'}</td>
                 <td class="text-muted">${pos.entryDate || '—'}</td>
                 <td>
-                  <button class="btn btn-sm btn-success" onclick="doCollectDiv('${pos.ticker}')">+Div</button>
-                  <button class="btn btn-sm btn-danger" onclick="doSell('${pos.ticker}')" style="margin-left:4px">Sell</button>
+                  <button class="btn btn-sm btn-success" onclick="event.stopPropagation();doCollectDiv('${pos.ticker}')">+Div</button>
+                  <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();doSell('${pos.ticker}')" style="margin-left:4px">Sell</button>
                 </td>
               </tr>`;
             }).join("")}
@@ -1703,8 +1767,9 @@ function renderPortfolio() {
         <table>
           <thead><tr><th>Date</th><th>Time</th><th>Type</th><th>Ticker</th><th>Shares</th><th>Price</th><th>P&L</th></tr></thead>
           <tbody>
-            ${STATE.tradeLog.slice().reverse().map(log => `
-              <tr>
+            ${STATE.tradeLog.slice().reverse().map((log, i) => {
+              const realIdx = STATE.tradeLog.length - 1 - i;
+              return `<tr onclick="showEditTradeModal(${realIdx})" style="cursor:pointer" title="Click to edit">
                 <td>${log.date}</td>
                 <td class="text-muted">${log.time}</td>
                 <td><span class="badge ${log.type==='BUY'?'badge-green':log.type==='SELL'?'badge-red':'badge-yellow'}">${log.type}</span></td>
@@ -1712,8 +1777,8 @@ function renderPortfolio() {
                 <td>${log.shares}</td>
                 <td>$${fmt(log.price)}</td>
                 <td class="${log.pnl !== undefined ? pctClass(log.pnl) : ''}">${log.pnl !== undefined ? fmtMoneySign(log.pnl) : '—'}</td>
-              </tr>
-            `).join("")}
+              </tr>`;
+            }).join("")}
             ${STATE.tradeLog.length === 0 ? '<tr><td colspan="7" class="text-center text-muted">No trades recorded yet</td></tr>' : ''}
           </tbody>
         </table>
@@ -1946,15 +2011,16 @@ function renderJournal() {
     <div class="card">
       <div class="card-title mb-12">Journal Entries</div>
       ${STATE.journal.length === 0 ? '<div class="text-muted text-sm">No journal entries yet. Start documenting your trades!</div>' :
-        STATE.journal.slice().reverse().map((entry, i) => `
-          <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+        STATE.journal.slice().reverse().map((entry, i) => {
+          const realIdx = STATE.journal.length - 1 - i;
+          return `<div style="padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="showEditJournalModal(${realIdx})" title="Click to edit">
             <div class="flex flex-between flex-center mb-8">
               <span class="fw-bold">${entry.date}</span>
-              <button class="btn btn-sm btn-danger" onclick="deleteJournalEntry(${STATE.journal.length - 1 - i})">Delete</button>
+              <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deleteJournalEntry(${realIdx})">Delete</button>
             </div>
             <div class="text-sm" style="white-space:pre-wrap">${entry.text}</div>
-          </div>
-        `).join("")}
+          </div>`;
+        }).join("")}
     </div>
   `;
 }
@@ -1963,27 +2029,56 @@ function renderJournal() {
 // PAGE: SETTINGS
 // ═══════════════════════════════════════════════════════
 function renderSettings() {
+  const activeKey = STATE.dataProvider === "tradier" ? STATE.tradierKey : STATE.apiKey;
   return `
     <h2 style="font-size:16px;margin-bottom:16px">Settings</h2>
     <div class="card mb-16">
-      <div class="card-title mb-12">Live Market Data — Finnhub API</div>
+      <div class="card-title mb-12">Live Market Data</div>
+      <div class="form-group mb-12">
+        <label>Data Provider</label>
+        <select id="settingProvider" onchange="document.getElementById('finnhubSection').style.display=this.value==='finnhub'?'block':'none';document.getElementById('tradierSection').style.display=this.value==='tradier'?'block':'none';">
+          <option value="finnhub" ${STATE.dataProvider==="finnhub"?"selected":""}>Finnhub (Individual quotes, 60/min free)</option>
+          <option value="tradier" ${STATE.dataProvider==="tradier"?"selected":""}>Tradier (Batch quotes, faster)</option>
+        </select>
+      </div>
       <div class="grid grid-2" style="gap:16px;align-items:start">
         <div>
-          <div class="form-group">
-            <label>Finnhub API Key</label>
-            <input type="text" id="settingApiKey" value="${STATE.apiKey}" placeholder="Paste your Finnhub API key..." style="width:100%;font-size:12px">
+          <div id="finnhubSection" style="display:${STATE.dataProvider==="finnhub"?"block":"none"}">
+            <div class="form-group">
+              <label>Finnhub API Key</label>
+              <input type="text" id="settingApiKey" value="${STATE.apiKey}" placeholder="Paste your Finnhub API key..." style="width:100%;font-size:12px">
+            </div>
+            <div class="text-xs text-muted mb-12">
+              Get a free key at <strong style="color:var(--cyan)">finnhub.io</strong> (60 calls/min, free tier)<br>
+              Prices update for all ${ETF_DB.length} ETFs individually
+            </div>
           </div>
-          <div class="text-xs text-muted mb-12">
-            Get a free key at <strong style="color:var(--cyan)">finnhub.io</strong> (60 calls/min, free tier)<br>
-            Prices update for all 50 ETFs in ~20 seconds
+          <div id="tradierSection" style="display:${STATE.dataProvider==="tradier"?"block":"none"}">
+            <div class="form-group">
+              <label>Tradier API Key (Bearer Token)</label>
+              <input type="text" id="settingTradierKey" value="${STATE.tradierKey}" placeholder="Paste your Tradier access token..." style="width:100%;font-size:12px">
+            </div>
+            <div class="form-group">
+              <label>Environment</label>
+              <select id="settingTradierEnv">
+                <option value="sandbox" ${STATE.tradierEnv==="sandbox"?"selected":""}>Sandbox (free, delayed 15min)</option>
+                <option value="production" ${STATE.tradierEnv==="production"?"selected":""}>Production (real-time, funded acct)</option>
+              </select>
+            </div>
+            <div class="text-xs text-muted mb-12">
+              Get a token at <strong style="color:var(--cyan)">tradier.com</strong> — batch quotes (~2 API calls for all ${ETF_DB.length} ETFs)
+            </div>
           </div>
-          <button class="btn btn-primary" onclick="saveSettings()" style="margin-right:8px">Save Key</button>
+          <button class="btn btn-primary" onclick="saveSettings()" style="margin-right:8px">Save Settings</button>
           <button class="btn btn-success" onclick="fetchLiveData()">Refresh Now</button>
         </div>
         <div style="background:var(--bg-input);padding:12px;border-radius:6px">
           <div class="text-xs text-muted mb-8">Connection Status</div>
           <div class="text-sm mb-8">
-            API Key: <span style="color:${STATE.apiKey ? 'var(--green)' : 'var(--red)'}">${STATE.apiKey ? 'Configured' : 'Not set'}</span>
+            Provider: <span style="color:var(--cyan)">${STATE.dataProvider === "tradier" ? "Tradier" : "Finnhub"}</span>
+          </div>
+          <div class="text-sm mb-8">
+            API Key: <span style="color:${activeKey ? 'var(--green)' : 'var(--red)'}">${activeKey ? 'Configured' : 'Not set'}</span>
           </div>
           <div class="text-sm mb-8">
             Last Refresh: <span style="color:var(--cyan)">${STATE.lastRefresh ? new Date(STATE.lastRefresh).toLocaleString() : 'Never'}</span>
@@ -2263,14 +2358,13 @@ function saveSettings() {
   const newKey = document.getElementById("settingApiKey")?.value?.trim() || "";
   const keyChanged = newKey !== STATE.apiKey;
   STATE.apiKey = newKey;
+  STATE.tradierKey = document.getElementById("settingTradierKey")?.value?.trim() || STATE.tradierKey;
+  STATE.dataProvider = document.getElementById("settingProvider")?.value || STATE.dataProvider;
+  STATE.tradierEnv = document.getElementById("settingTradierEnv")?.value || STATE.tradierEnv;
   saveState();
   render();
   initLiveStatus();
-  if (keyChanged && newKey) {
-    alert("API key saved! Click 'Refresh Now' or use the topbar Refresh button to fetch live prices.");
-  } else {
-    alert("Settings saved.");
-  }
+  alert("Settings saved! Click 'Refresh Now' to fetch live prices.");
 }
 
 function exportCSV() {
@@ -2383,7 +2477,7 @@ updateClock();
 // ═══════════════════════════════════════════════════════
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") return;
-  const pages = ["dashboard","scanner","calendar","actions","portfolio","allocator","analytics","journal","settings"];
+  const pages = ["dashboard","scanner","calendar","actions","portfolio","allocator","analytics","journal","charts","settings"];
   if (e.key >= "1" && e.key <= "9") {
     const idx = parseInt(e.key) - 1;
     if (idx < pages.length) {
@@ -2397,13 +2491,387 @@ document.addEventListener("keydown", e => {
 });
 
 // ═══════════════════════════════════════════════════════
+// TRADIER API
+// ═══════════════════════════════════════════════════════
+async function fetchTradierData() {
+  if (STATE.refreshing) return;
+  if (!STATE.tradierKey) {
+    STATE.page = "settings";
+    document.querySelectorAll(".nav-item").forEach(i => i.classList.toggle("active", i.dataset.page === "settings"));
+    render();
+    alert("Enter your Tradier API key in Settings first.");
+    return;
+  }
+  STATE.refreshing = true;
+  updateRefreshUI("Connecting to Tradier...", 0, "stale");
+  const baseUrl = STATE.tradierEnv === "production" ? "https://api.tradier.com" : "https://sandbox.tradier.com";
+  const batchSize = 80;
+  let updated = 0, failed = 0;
+  for (let b = 0; b < ETF_DB.length; b += batchSize) {
+    const batch = ETF_DB.slice(b, b + batchSize);
+    const symbols = batch.map(e => e.t).join(",");
+    const pct = Math.round(((b + batch.length) / ETF_DB.length) * 100);
+    updateRefreshUI(`Batch ${Math.floor(b/batchSize)+1} (${b+1}-${b+batch.length}/${ETF_DB.length})`, pct, "stale");
+    try {
+      const resp = await fetch(`${baseUrl}/v1/markets/quotes?symbols=${symbols}&greeks=false`, {
+        headers: { "Authorization": `Bearer ${STATE.tradierKey}`, "Accept": "application/json" }
+      });
+      if (resp.status === 401 || resp.status === 403) {
+        STATE.refreshing = false;
+        updateRefreshUI("Invalid Tradier key", -1, "offline");
+        alert("Invalid Tradier API key. Check your key in Settings.");
+        return;
+      }
+      const data = await resp.json();
+      const quotes = data?.quotes?.quote;
+      if (!quotes) { failed += batch.length; continue; }
+      const qArr = Array.isArray(quotes) ? quotes : [quotes];
+      qArr.forEach(q => {
+        const etf = ETF_DB.find(e => e.t === q.symbol);
+        if (etf && q.last && q.last > 0) {
+          etf.p = q.last;
+          etf.dayChange = q.change_percentage || 0;
+          etf.dayChangeAbs = q.change || 0;
+          etf.high = q.high || etf.p;
+          etf.low = q.low || etf.p;
+          etf.prevClose = q.prevclose || etf.p;
+          if (q.change_percentage > 3) etf.mom = Math.min(100, etf.mom + 4);
+          else if (q.change_percentage > 1) etf.mom = Math.min(100, etf.mom + 2);
+          else if (q.change_percentage > 0) etf.mom = Math.min(100, etf.mom + 1);
+          else if (q.change_percentage < -3) etf.mom = Math.max(0, etf.mom - 4);
+          else if (q.change_percentage < -1) etf.mom = Math.max(0, etf.mom - 2);
+          else if (q.change_percentage < 0) etf.mom = Math.max(0, etf.mom - 1);
+          updated++;
+        } else { failed++; }
+      });
+    } catch (e) {
+      console.warn("Tradier batch failed:", e);
+      failed += batch.length;
+    }
+  }
+  STATE.lastRefresh = new Date().toISOString();
+  STATE.refreshing = false;
+  saveLivePrices();
+  saveState();
+  render();
+  const timeStr = new Date().toLocaleTimeString();
+  updateRefreshUI(`${updated} live @ ${timeStr}${failed ? ` (${failed} missed)` : ""}`, -1, "live");
+}
+
+// ═══════════════════════════════════════════════════════
+// SCORE LEGEND MODAL
+// ═══════════════════════════════════════════════════════
+function showScoreLegendModal() {
+  const existing = document.getElementById("scoreLegendModal");
+  if (existing) existing.remove();
+  // Example calculation using PLTY
+  const ex = ETF_DB.find(e => e.t === "PLTY") || ETF_DB[0];
+  const exMom = (ex.mom / 100).toFixed(2);
+  const exYld = Math.min(ex.wy / 1.5, 1).toFixed(2);
+  const exNav = Math.max(0, 1 + ex.navE / 50).toFixed(2);
+  const exTr = Math.max(0, ex.tr / 25).toFixed(2);
+  const exRisk = ((6 - ex.risk) / 5).toFixed(2);
+  const modal = document.createElement("div");
+  modal.id = "scoreLegendModal";
+  modal.className = "modal-overlay";
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto">
+      <h3 style="margin:0 0 16px;font-size:15px">Composite Score Breakdown</h3>
+      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:16px">
+        Scores rank ETFs from 0-100 to identify the best dividend capture opportunities. Higher = better buy signal.
+      </div>
+      <div style="margin-bottom:16px">
+        ${[
+          {name:"Momentum",w:30,desc:"Price trend strength (0-100 scale). Adjusts dynamically on each price refresh.",color:"var(--cyan)"},
+          {name:"Weekly Yield",w:25,desc:"Dividend yield per week, capped at 1.5% for normalization.",color:"var(--yellow)"},
+          {name:"NAV Stability",w:20,desc:"Penalizes NAV erosion. 0% erosion = 1.0, -50% erosion = 0.",color:"var(--green)"},
+          {name:"Total Return",w:15,desc:"Net total return as % of 25% benchmark.",color:"var(--purple)"},
+          {name:"Risk Adjustment",w:10,desc:"Lower risk = higher score. Risk 1 = 1.0, Risk 5 = 0.2.",color:"var(--orange)"}
+        ].map(f => `
+          <div style="margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+              <span style="width:110px;font-size:11px;font-weight:600">${f.name}</span>
+              <div style="flex:1;height:8px;background:var(--bg-input);border-radius:4px;overflow:hidden">
+                <div style="width:${f.w}%;height:100%;background:${f.color};border-radius:4px"></div>
+              </div>
+              <span style="width:32px;text-align:right;font-size:11px;font-weight:700">${f.w}%</span>
+            </div>
+            <div style="font-size:10px;color:var(--text-muted);margin-left:118px">${f.desc}</div>
+          </div>
+        `).join("")}
+      </div>
+      <div style="background:var(--bg-input);padding:12px;border-radius:8px;margin-bottom:16px">
+        <div style="font-size:11px;font-weight:600;margin-bottom:8px">Signal Classification</div>
+        <div style="display:flex;gap:12px;font-size:11px">
+          <span><span class="badge badge-green">BUY</span> Score &ge; 70</span>
+          <span><span class="badge badge-yellow">CAUTION</span> Score 50-69</span>
+          <span><span class="badge badge-red">SKIP</span> Score &lt; 50</span>
+        </div>
+      </div>
+      <div style="background:var(--bg-input);padding:12px;border-radius:8px;margin-bottom:16px">
+        <div style="font-size:11px;font-weight:600;margin-bottom:8px">Example: ${ex.t} (${ex.u})</div>
+        <div style="font-size:10px;color:var(--text-muted);line-height:1.6">
+          Momentum: ${ex.mom}/100 = <strong>${exMom}</strong> &times; 0.30 = ${(exMom*0.30).toFixed(3)}<br>
+          Yield: ${ex.wy}%/1.5 = <strong>${exYld}</strong> &times; 0.25 = ${(exYld*0.25).toFixed(3)}<br>
+          NAV: 1 + (${ex.navE}/50) = <strong>${exNav}</strong> &times; 0.20 = ${(exNav*0.20).toFixed(3)}<br>
+          Return: ${ex.tr}/25 = <strong>${exTr}</strong> &times; 0.15 = ${(exTr*0.15).toFixed(3)}<br>
+          Risk: (6-${ex.risk})/5 = <strong>${exRisk}</strong> &times; 0.10 = ${(exRisk*0.10).toFixed(3)}<br>
+          <strong style="color:var(--cyan)">Total: ${compositeScore(ex)}</strong>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="document.getElementById('scoreLegendModal').remove()" style="width:100%">Close</button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+// ═══════════════════════════════════════════════════════
+// EDIT TRADE LOG MODAL
+// ═══════════════════════════════════════════════════════
+function showEditTradeModal(index) {
+  const existing = document.getElementById("editTradeModal");
+  if (existing) existing.remove();
+  const trade = STATE.tradeLog[index];
+  if (!trade) return;
+  const tickers = ETF_DB.map(e => e.t).sort();
+  const modal = document.createElement("div");
+  modal.id = "editTradeModal";
+  modal.className = "modal-overlay";
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div class="modal" style="max-width:440px">
+      <h3 style="margin:0 0 16px;font-size:15px">Edit Trade Entry</h3>
+      <div class="form-group">
+        <label>Type</label>
+        <select id="editTradeType">
+          <option value="BUY" ${trade.type==="BUY"?"selected":""}>BUY</option>
+          <option value="SELL" ${trade.type==="SELL"?"selected":""}>SELL</option>
+          <option value="DIV" ${trade.type==="DIV"?"selected":""}>DIV</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Ticker</label>
+        <select id="editTradeTicker">
+          ${tickers.map(t => `<option value="${t}" ${t===trade.ticker?"selected":""}>${t}</option>`).join("")}
+        </select>
+      </div>
+      <div class="grid grid-2" style="gap:12px">
+        <div class="form-group"><label>Shares</label><input type="number" id="editTradeShares" value="${trade.shares}" min="1"></div>
+        <div class="form-group"><label>Price</label><input type="number" id="editTradePrice" value="${trade.price}" step="0.01" min="0"></div>
+      </div>
+      <div class="grid grid-2" style="gap:12px">
+        <div class="form-group"><label>Date</label><input type="date" id="editTradeDate" value="${trade.date}"></div>
+        <div class="form-group"><label>P&L (optional)</label><input type="number" id="editTradePnl" value="${trade.pnl ?? ''}" step="0.01"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-primary" onclick="confirmEditTrade(${index})" style="flex:1">Save</button>
+        <button class="btn btn-danger" onclick="deleteTradeEntry(${index})">Delete</button>
+        <button class="btn" onclick="document.getElementById('editTradeModal').remove()">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+function confirmEditTrade(index) {
+  const trade = STATE.tradeLog[index];
+  if (!trade) return;
+  trade.type = document.getElementById("editTradeType").value;
+  trade.ticker = document.getElementById("editTradeTicker").value;
+  trade.shares = parseInt(document.getElementById("editTradeShares").value) || 1;
+  trade.price = parseFloat(document.getElementById("editTradePrice").value) || 0;
+  trade.date = document.getElementById("editTradeDate").value;
+  const pnlVal = document.getElementById("editTradePnl").value;
+  trade.pnl = pnlVal !== "" ? parseFloat(pnlVal) : undefined;
+  saveState();
+  document.getElementById("editTradeModal")?.remove();
+  render();
+}
+function deleteTradeEntry(index) {
+  if (!confirm("Delete this trade log entry?")) return;
+  STATE.tradeLog.splice(index, 1);
+  saveState();
+  document.getElementById("editTradeModal")?.remove();
+  render();
+}
+
+// ═══════════════════════════════════════════════════════
+// EDIT PORTFOLIO POSITION MODAL
+// ═══════════════════════════════════════════════════════
+function showEditPositionModal(ticker) {
+  const existing = document.getElementById("editPosModal");
+  if (existing) existing.remove();
+  const pos = STATE.portfolio.find(p => p.ticker === ticker);
+  if (!pos) return;
+  const etf = ETF_DB.find(e => e.t === ticker);
+  const modal = document.createElement("div");
+  modal.id = "editPosModal";
+  modal.className = "modal-overlay";
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div class="modal" style="max-width:440px">
+      <h3 style="margin:0 0 16px;font-size:15px">Edit Position — ${ticker}</h3>
+      ${etf ? `<div class="text-xs text-muted mb-12">${etf.n} | Current Price: $${fmt(etf.p)}</div>` : ''}
+      <div class="grid grid-2" style="gap:12px">
+        <div class="form-group"><label>Shares</label><input type="number" id="editPosShares" value="${pos.shares}" min="1"></div>
+        <div class="form-group"><label>Avg Cost</label><input type="number" id="editPosAvgCost" value="${pos.avgCost}" step="0.01" min="0"></div>
+      </div>
+      <div class="grid grid-2" style="gap:12px">
+        <div class="form-group"><label>Entry Date</label><input type="date" id="editPosEntryDate" value="${pos.entryDate || ''}"></div>
+        <div class="form-group"><label>Divs Collected ($)</label><input type="number" id="editPosDivs" value="${pos.divsCollected || 0}" step="0.01" min="0"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-primary" onclick="confirmEditPosition('${ticker}')" style="flex:1">Save</button>
+        <button class="btn" onclick="document.getElementById('editPosModal').remove()">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+function confirmEditPosition(ticker) {
+  const pos = STATE.portfolio.find(p => p.ticker === ticker);
+  if (!pos) return;
+  pos.shares = parseInt(document.getElementById("editPosShares").value) || 1;
+  pos.avgCost = parseFloat(document.getElementById("editPosAvgCost").value) || 0;
+  pos.entryDate = document.getElementById("editPosEntryDate").value;
+  pos.divsCollected = parseFloat(document.getElementById("editPosDivs").value) || 0;
+  saveState();
+  document.getElementById("editPosModal")?.remove();
+  render();
+}
+
+// ═══════════════════════════════════════════════════════
+// EDIT JOURNAL MODAL
+// ═══════════════════════════════════════════════════════
+function showEditJournalModal(index) {
+  const existing = document.getElementById("editJournalModal");
+  if (existing) existing.remove();
+  const entry = STATE.journal[index];
+  if (!entry) return;
+  const modal = document.createElement("div");
+  modal.id = "editJournalModal";
+  modal.className = "modal-overlay";
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div class="modal" style="max-width:500px">
+      <h3 style="margin:0 0 16px;font-size:15px">Edit Journal Entry</h3>
+      <div class="form-group"><label>Date</label><input type="date" id="editJournalDate" value="${entry.date}"></div>
+      <div class="form-group"><label>Notes</label><textarea id="editJournalText" style="width:100%;min-height:120px;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:12px">${entry.text}</textarea></div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-primary" onclick="confirmEditJournal(${index})" style="flex:1">Save</button>
+        <button class="btn btn-danger" onclick="deleteJournalEntryModal(${index})">Delete</button>
+        <button class="btn" onclick="document.getElementById('editJournalModal').remove()">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+function confirmEditJournal(index) {
+  const entry = STATE.journal[index];
+  if (!entry) return;
+  entry.date = document.getElementById("editJournalDate").value;
+  entry.text = document.getElementById("editJournalText").value;
+  saveState();
+  document.getElementById("editJournalModal")?.remove();
+  render();
+}
+function deleteJournalEntryModal(index) {
+  if (!confirm("Delete this journal entry?")) return;
+  STATE.journal.splice(index, 1);
+  saveState();
+  document.getElementById("editJournalModal")?.remove();
+  render();
+}
+
+// ═══════════════════════════════════════════════════════
+// PAGE: TRADINGVIEW CHARTS
+// ═══════════════════════════════════════════════════════
+function renderCharts() {
+  const days = ["All","Mon","Tue","Wed","Thu","Fri"];
+  const filtered = STATE.chartDayFilter === "All" ? ETF_DB.filter(e => e.freq === "W") : ETF_DB.filter(e => e.exDay === STATE.chartDayFilter);
+  const sorted = [...filtered].sort((a,b) => compositeScore(b) - compositeScore(a));
+  const selETF = ETF_DB.find(e => e.t === STATE.chartTicker);
+  return `
+    <div style="margin-bottom:12px">
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+        ${days.map(d => `<button class="btn btn-sm ${STATE.chartDayFilter===d?'btn-primary':''}" onclick="STATE.chartDayFilter='${d}';render();loadTVWidget(STATE.chartTicker)">${d === "All" ? "All Days" : d + " Ex-Div"}</button>`).join("")}
+      </div>
+      <div style="display:flex;gap:4px;overflow-x:auto;padding:4px 0" class="ticker-scroller">
+        ${sorted.map(e => {
+          const sc = compositeScore(e);
+          const cls = STATE.chartTicker === e.t ? 'btn-primary' : '';
+          return `<button class="btn btn-sm ${cls}" style="white-space:nowrap;font-size:10px;padding:3px 8px" onclick="STATE.chartTicker='${e.t}';document.querySelectorAll('.ticker-scroller button').forEach(b=>b.classList.remove('btn-primary'));this.classList.add('btn-primary');loadTVWidget('${e.t}');document.getElementById('chartInfo').innerHTML=getChartInfo('${e.t}')">${e.t} <span style="opacity:0.6">${sc}</span></button>`;
+        }).join("")}
+      </div>
+    </div>
+    <div id="tv-widget" style="height:480px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border);overflow:hidden;margin-bottom:12px"></div>
+    <div style="background:var(--bg-input);border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:10px;color:var(--text-muted)">
+      EMAs (10/20/50) are added automatically. To customize colors or add indicators, use the chart's settings gear icon. Order blocks require TradingView Pro — not available in the free embed widget.
+    </div>
+    <div id="chartInfo" class="card" style="padding:12px">
+      ${selETF ? getChartInfoHTML(selETF) : '<div class="text-muted">Select a ticker above</div>'}
+    </div>
+  `;
+}
+function getChartInfo(ticker) {
+  const e = ETF_DB.find(x => x.t === ticker);
+  return e ? getChartInfoHTML(e) : '';
+}
+function getChartInfoHTML(e) {
+  const sc = compositeScore(e);
+  const scColor = sc >= 70 ? 'var(--green)' : sc >= 50 ? 'var(--yellow)' : 'var(--orange)';
+  return `
+    <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;font-size:12px">
+      <div><span class="fw-bold" style="color:var(--accent);font-size:14px">${e.t}</span> <span class="text-muted">${e.n}</span></div>
+      <div>Underlying: <strong>${e.u}</strong></div>
+      <div>Price: <strong>$${fmt(e.p)}</strong></div>
+      <div>Score: <strong style="color:${scColor}">${sc}</strong> <span style="cursor:pointer;opacity:0.6" onclick="showScoreLegendModal()">(?)</span></div>
+      <div>Yield: <strong>${e.wy}%/wk</strong></div>
+      <div>Div: <strong>$${fmt(e.div)}</strong></div>
+      <div>Risk: <strong>${RISK_LABELS[e.risk]}</strong></div>
+      <div>Ex-Div: <strong>${e.exDay}</strong></div>
+      <div>Freq: <span class="badge ${e.freq==="W"?"badge-green":"badge-yellow"}">${e.freq==="W"?"Weekly":"Monthly"}</span></div>
+    </div>`;
+}
+function loadTVWidget(ticker) {
+  const container = document.getElementById("tv-widget");
+  if (!container) return;
+  container.innerHTML = "";
+  const widgetDiv = document.createElement("div");
+  widgetDiv.className = "tradingview-widget-container";
+  widgetDiv.style.height = "100%";
+  container.appendChild(widgetDiv);
+  const script = document.createElement("script");
+  script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+  script.async = true;
+  const theme = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+  script.textContent = JSON.stringify({
+    symbol: ticker,
+    interval: "D",
+    width: "100%",
+    height: "100%",
+    style: "1",
+    theme: theme,
+    timezone: "America/New_York",
+    studies: [
+      { id: "MAExp@tv-basicstudies", inputs: { length: 10 } },
+      { id: "MAExp@tv-basicstudies", inputs: { length: 20 } },
+      { id: "MAExp@tv-basicstudies", inputs: { length: 50 } }
+    ],
+    allow_symbol_change: true,
+    hide_side_toolbar: false,
+    details: true,
+    calendar: false,
+    support_host: "https://www.tradingview.com"
+  });
+  widgetDiv.appendChild(script);
+}
+
+// ═══════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════
 render();
 initLiveStatus();
 
 // Auto-fetch on load if API key exists and data is stale (>10 min old)
-if (STATE.apiKey) {
+const activeApiKey = STATE.dataProvider === "tradier" ? STATE.tradierKey : STATE.apiKey;
+if (activeApiKey) {
   const staleMs = STATE.lastRefresh ? Date.now() - new Date(STATE.lastRefresh).getTime() : Infinity;
   if (staleMs > 10 * 60 * 1000) {
     setTimeout(() => fetchLiveData(), 1000);
