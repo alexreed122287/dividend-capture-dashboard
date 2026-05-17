@@ -250,7 +250,7 @@ input:focus, select:focus { outline:none; border-color: var(--accent); }
       <div class="nav-item" data-page="settings"><span class="icon">&#9881;</span> Settings</div>
     </div>
     <div class="sidebar-footer">
-      <div>RRJCAR v5.0</div>
+      <div>RRJCAR v5.3</div>
       <div style="margin-top:4px;" id="providerFooter">Live Data</div>
     </div>
   </div>
@@ -413,6 +413,25 @@ const ETF_DB = [
   {t:"YBST",n:"GraniteShares YieldBOOST Universe",u:"Multi-Basket",sec:"Multi-Sector",type:"Put Spread",p:10.00,wy:2.10,ay:109.2,exDay:"Fri",div:0.210,vol:1.5,mom:55,navE:-22.5,tr:10.8,aum:35,er:0.99,risk:5,freq:"W",grp:"GS"},
   {t:"YBTY",n:"GraniteShares YieldBOOST TopYielders",u:"Top Yield Basket",sec:"Multi-Sector",type:"Put Spread",p:9.00,wy:2.60,ay:135.2,exDay:"Fri",div:0.234,vol:1.8,mom:52,navE:-28.5,tr:10.2,aum:30,er:0.99,risk:5,freq:"W",grp:"GS"},
 
+  // ═══ WEEKLY: New 2025-26 launches — seed prices are estimates, corrected on live refresh; verify div/share vs issuer schedule ═══
+  // YieldMax Group 1 — Ex-div WEDNESDAY
+  {t:"LFGY",n:"YieldMax Crypto Industry & Tech",u:"Crypto/Tech Basket",sec:"Crypto/Tech",type:"Multi CC",p:46.00,wy:1.10,ay:57.2,exDay:"Wed",div:0.506,vol:1.5,mom:58,navE:-12.5,tr:13.5,aum:120,er:0.99,risk:5,freq:"W",grp:"YM1"},
+  {t:"FEAT",n:"YieldMax Target 12 Big 50",u:"Big 50 Basket",sec:"Multi-Sector",type:"Multi CC",p:50.00,wy:0.27,ay:14.0,exDay:"Wed",div:0.135,vol:1.0,mom:60,navE:-3.5,tr:9.5,aum:90,er:0.99,risk:3,freq:"W",grp:"YM1"},
+  // YieldMax Group 2 — Ex-div THURSDAY
+  {t:"ABNY",n:"YieldMax ABNB Option Income",u:"ABNB",sec:"Consumer/Tech",type:"Single Stock",p:16.50,wy:1.05,ay:54.6,exDay:"Thu",div:0.173,vol:1.8,mom:52,navE:-14.5,tr:9.2,aum:55,er:0.99,risk:5,freq:"W",grp:"YM2"},
+  {t:"SMCY",n:"YieldMax SMCI Option Income",u:"SMCI",sec:"Technology",type:"Single Stock",p:14.00,wy:2.80,ay:145.6,exDay:"Thu",div:0.392,vol:5.5,mom:45,navE:-32.5,tr:8.5,aum:120,er:0.99,risk:5,freq:"W",grp:"YM2"},
+  {t:"FIAT",n:"YieldMax Short COIN Option Income",u:"COIN (Short)",sec:"Crypto/Fintech",type:"Short CC",p:9.50,wy:1.90,ay:98.8,exDay:"Thu",div:0.181,vol:2.5,mom:38,navE:-28.5,tr:5.5,aum:60,er:0.99,risk:5,freq:"W",grp:"YM2"},
+  // Defiance — Ex-div THURSDAY
+  {t:"MST",n:"Defiance Leveraged Long + Income MSTR",u:"MSTR",sec:"Crypto/Tech",type:"Leveraged CC",p:18.00,wy:2.20,ay:114.4,exDay:"Thu",div:0.396,vol:6.5,mom:50,navE:-35.5,tr:12.5,aum:140,er:1.29,risk:5,freq:"W",grp:"DEF"},
+  {t:"YBMN",n:"Defiance BMNR Option Income",u:"BMNR",sec:"Crypto",type:"Single Stock",p:12.00,wy:2.50,ay:130.0,exDay:"Thu",div:0.300,vol:3.0,mom:42,navE:-30.0,tr:8.0,aum:45,er:0.99,risk:5,freq:"W",grp:"DEF"},
+  // REX Growth & Income — Ex-div TUESDAY
+  {t:"GIF",n:"REX Growth & Income Universe",u:"REX G&I Basket",sec:"Multi-Sector",type:"Fund of Funds",p:25.00,wy:1.00,ay:52.0,exDay:"Tue",div:0.250,vol:1.2,mom:55,navE:-15.0,tr:12.0,aum:50,er:0.90,risk:5,freq:"W",grp:"REX"},
+  // GraniteShares YieldBOOST sector suite — Ex-div FRIDAY (launched May 2026)
+  {t:"BIOY",n:"GraniteShares YieldBOOST Biotech",u:"Biotech",sec:"Healthcare",type:"Put Spread",p:8.00,wy:2.50,ay:130.0,exDay:"Fri",div:0.200,vol:1.5,mom:48,navE:-26.0,tr:9.5,aum:20,er:0.99,risk:5,freq:"W",grp:"GS"},
+  {t:"FINY",n:"GraniteShares YieldBOOST Financials",u:"Financials",sec:"Financials",type:"Put Spread",p:9.00,wy:2.10,ay:109.2,exDay:"Fri",div:0.189,vol:1.5,mom:55,navE:-22.0,tr:10.2,aum:20,er:0.99,risk:5,freq:"W",grp:"GS"},
+  {t:"TECY",n:"GraniteShares YieldBOOST Technology",u:"Technology",sec:"Technology",type:"Put Spread",p:9.00,wy:2.60,ay:135.2,exDay:"Fri",div:0.234,vol:1.8,mom:62,navE:-25.0,tr:11.5,aum:25,er:0.99,risk:5,freq:"W",grp:"GS"},
+  {t:"FIYY",n:"GraniteShares YieldBOOST 20Y+ Treasuries",u:"TLT/Treasuries",sec:"Fixed Income",type:"Put Spread",p:10.00,wy:1.50,ay:78.0,exDay:"Fri",div:0.150,vol:1.2,mom:45,navE:-15.0,tr:7.5,aum:18,er:0.99,risk:4,freq:"W",grp:"GS"},
+
   // ═══ MONTHLY: JPMorgan — Ex-div ~1st of month ═══
   {t:"JEPI",n:"JPMorgan Equity Premium Income",u:"S&P 500",sec:"Multi-Sector",type:"Index CC",p:57.20,wy:0.14,ay:7.4,exDay:"monthly",div:0.351,vol:8.2,mom:68,navE:-1.2,tr:6.8,aum:35000,er:0.35,risk:2,freq:"M",exDayOfMonth:1},
   {t:"JEPQ",n:"JPMorgan Nasdaq Equity Prem Inc",u:"NASDAQ 100",sec:"Technology",type:"Index CC",p:52.80,wy:0.22,ay:11.6,exDay:"monthly",div:0.509,vol:12.5,mom:74,navE:-2.1,tr:9.5,aum:18000,er:0.35,risk:2,freq:"M",exDayOfMonth:1},
@@ -446,6 +465,14 @@ const ETF_DB = [
   {t:"BTCI",n:"NEOS Bitcoin High Income",u:"BTC",sec:"Crypto",type:"Single Stock",p:38.00,wy:0.40,ay:20.8,exDay:"monthly",div:0.65,vol:3.5,mom:58,navE:-12.5,tr:15.2,aum:250,er:0.68,risk:5,freq:"M",exDayOfMonth:18},
   {t:"CSHI",n:"NEOS Enhanced Income Cash Alt",u:"Cash/T-Bills",sec:"Fixed Income",type:"Vol Premium",p:50.00,wy:0.12,ay:6.0,exDay:"monthly",div:0.25,vol:1.0,mom:55,navE:0.2,tr:5.8,aum:1200,er:0.25,risk:1,freq:"M",exDayOfMonth:18},
 
+  // ═══ MONTHLY: NEOS New 2025-26 launches — Ex-div ~18th; seed prices estimated, corrected on live refresh ═══
+  {t:"IAUI",n:"NEOS Gold High Income",u:"Gold/IAU",sec:"Materials",type:"Index CC",p:55.00,wy:0.20,ay:10.4,exDay:"monthly",div:0.47,vol:1.2,mom:62,navE:-1.5,tr:9.5,aum:350,er:0.68,risk:2,freq:"M",exDayOfMonth:18},
+  {t:"NEHI",n:"NEOS Ethereum High Income",u:"ETH",sec:"Crypto",type:"Single Stock",p:30.00,wy:0.45,ay:23.4,exDay:"monthly",div:0.585,vol:2.5,mom:52,navE:-18.5,tr:12.5,aum:120,er:0.68,risk:5,freq:"M",exDayOfMonth:18},
+  {t:"XSPI",n:"NEOS Boosted S&P 500 High Income",u:"S&P 500 (1.5x)",sec:"Multi-Sector",type:"Index CC",p:50.00,wy:0.30,ay:15.6,exDay:"monthly",div:0.65,vol:1.5,mom:66,navE:-3.0,tr:11.5,aum:280,er:0.68,risk:3,freq:"M",exDayOfMonth:18},
+  {t:"XQQI",n:"NEOS Boosted Nasdaq-100 High Income",u:"NASDAQ 100 (1.5x)",sec:"Technology",type:"Index CC",p:50.00,wy:0.33,ay:17.2,exDay:"monthly",div:0.72,vol:1.5,mom:70,navE:-4.0,tr:12.8,aum:220,er:0.68,risk:3,freq:"M",exDayOfMonth:18},
+  {t:"XBCI",n:"NEOS Boosted Bitcoin High Income",u:"BTC (1.5x)",sec:"Crypto",type:"Single Stock",p:42.00,wy:0.55,ay:28.6,exDay:"monthly",div:1.001,vol:3.0,mom:56,navE:-14.0,tr:15.5,aum:180,er:0.68,risk:5,freq:"M",exDayOfMonth:18},
+  {t:"MLPI",n:"NEOS MLP High Income",u:"Energy MLPs",sec:"Energy",type:"Index CC",p:48.00,wy:0.22,ay:11.4,exDay:"monthly",div:0.456,vol:0.8,mom:54,navE:-2.0,tr:8.8,aum:140,er:0.68,risk:3,freq:"M",exDayOfMonth:18},
+
   // ═══ MONTHLY: ProShares High Income ═══
   {t:"IQQQ",n:"ProShares Nasdaq-100 High Income",u:"NASDAQ 100",sec:"Technology",type:"0DTE",p:42.00,wy:0.25,ay:12.5,exDay:"monthly",div:0.44,vol:2.0,mom:65,navE:-4.2,tr:9.8,aum:600,er:0.55,risk:3,freq:"M",exDayOfMonth:20},
   {t:"ITWO",n:"ProShares Russell 2000 High Income",u:"Russell 2000",sec:"Small Cap",type:"0DTE",p:35.00,wy:0.28,ay:14.0,exDay:"monthly",div:0.42,vol:1.5,mom:40,navE:-5.8,tr:8.2,aum:300,er:0.55,risk:3,freq:"M",exDayOfMonth:20},
@@ -473,8 +500,11 @@ const STATE = {
   journal: JSON.parse(localStorage.getItem("dcp_journal") || "[]"),
   apiKey: localStorage.getItem("dcp_apiKey") || "",
   tradierKey: localStorage.getItem("dcp_tradierKey") || "",
+  tradierAccountId: localStorage.getItem("dcp_tradierAccountId") || "",
+  fmpKey: localStorage.getItem("dcp_fmpKey") || "",
   dataProvider: localStorage.getItem("dcp_dataProvider") || "finnhub",
   tradierEnv: localStorage.getItem("dcp_tradierEnv") || "sandbox",
+  orderProvider: localStorage.getItem("dcp_orderProvider") || "tradier",
   tradeViewMode: localStorage.getItem("dcp_tradeViewMode") || "paired",
   chartTicker: "TSLY",
   chartDayFilter: "All",
@@ -501,10 +531,12 @@ const STATE = {
           etf.dayChange = prices[etf.t].dp || 0;
           etf.dayChangeAbs = prices[etf.t].d || 0;
           if (prices[etf.t].mom !== undefined) etf.mom = prices[etf.t].mom;
+          if (prices[etf.t].div !== undefined) etf.div = prices[etf.t].div;
         }
       });
     } catch(e) {}
   }
+  recomputeYields();
 })();
 
 function saveState() {
@@ -517,8 +549,11 @@ function saveState() {
   localStorage.setItem("dcp_journal", JSON.stringify(STATE.journal));
   localStorage.setItem("dcp_apiKey", STATE.apiKey);
   localStorage.setItem("dcp_tradierKey", STATE.tradierKey);
+  localStorage.setItem("dcp_tradierAccountId", STATE.tradierAccountId);
+  localStorage.setItem("dcp_fmpKey", STATE.fmpKey);
   localStorage.setItem("dcp_dataProvider", STATE.dataProvider);
   localStorage.setItem("dcp_tradierEnv", STATE.tradierEnv);
+  localStorage.setItem("dcp_orderProvider", STATE.orderProvider);
   localStorage.setItem("dcp_tradeViewMode", STATE.tradeViewMode);
   if (STATE.lastRefresh) localStorage.setItem("dcp_lastRefresh", STATE.lastRefresh);
 }
@@ -526,7 +561,7 @@ function saveState() {
 function saveLivePrices() {
   const prices = {};
   ETF_DB.forEach(e => {
-    prices[e.t] = { p: e.p, dp: e.dayChange || 0, d: e.dayChangeAbs || 0, mom: e.mom };
+    prices[e.t] = { p: e.p, dp: e.dayChange || 0, d: e.dayChangeAbs || 0, mom: e.mom, div: e.div };
   });
   localStorage.setItem("dcp_livePrices", JSON.stringify(prices));
 }
@@ -588,6 +623,23 @@ function riskMeter(r) {
   return html;
 }
 
+// Keep weekly/annual yields consistent with live price + distribution.
+// Single source of truth = etf.div and etf.p. Weekly ETFs pay ~52x/yr,
+// monthly ETFs pay ~12x/yr; wy is always normalized to a weekly-equivalent.
+function recomputeYields() {
+  ETF_DB.forEach(e => {
+    if (!e.p || e.p <= 0 || !e.div || e.div <= 0) return;
+    const perPayPct = (e.div / e.p) * 100;
+    if (e.freq === "W") {
+      e.wy = parseFloat(perPayPct.toFixed(2));
+      e.ay = parseFloat((perPayPct * 52).toFixed(1));
+    } else {
+      e.ay = parseFloat((perPayPct * 12).toFixed(1));
+      e.wy = parseFloat((e.ay / 52).toFixed(2));
+    }
+  });
+}
+
 function compositeScore(etf) {
   const momScore = etf.mom / 100;
   const yieldScore = Math.min(etf.wy / 1.5, 1);
@@ -623,13 +675,18 @@ function getAllTypes() { return [...new Set(ETF_DB.map(e => e.type))].sort(); }
 function getNextExDivDate(etf) {
   if (!etf.exDayOfMonth) return null;
   const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const y = now.getFullYear(), m = now.getMonth();
   let d = new Date(y, m, etf.exDayOfMonth);
-  // If this month's date already passed, use next month
-  if (d < new Date(y, m, now.getDate())) d = new Date(y, m + 1, etf.exDayOfMonth);
   // If weekend, shift to prior Friday
   if (d.getDay() === 0) d.setDate(d.getDate() - 2);
   if (d.getDay() === 6) d.setDate(d.getDate() - 1);
+  // If this month's date already passed (not today), use next month
+  if (d < today) {
+    d = new Date(y, m + 1, etf.exDayOfMonth);
+    if (d.getDay() === 0) d.setDate(d.getDate() - 2);
+    if (d.getDay() === 6) d.setDate(d.getDate() - 1);
+  }
   return d;
 }
 
@@ -685,9 +742,11 @@ function showBuyModal(ticker) {
           Suggested: ${ps.shares} shares @ $${fmt(etf.p)} (${fmt(STATE.maxPositionPct)}% position limit = $${fmt(STATE.capital * STATE.maxPositionPct / 100)})
         </div>
       </div>
+      ${tradierOrderReady() ? `<div class="text-xs" style="margin-top:8px;color:${STATE.tradierEnv==='production'?'var(--red)':'var(--yellow)'}">Tradier order routing: <strong>${STATE.tradierEnv==='production'?'PRODUCTION — live funds':'Sandbox — paper'}</strong> (acct ${STATE.tradierAccountId})</div>` : ''}
       <div class="form-actions">
         <button class="btn" onclick="closeBuyModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="confirmBuyModal('${etf.t}')">Confirm Buy</button>
+        <button class="btn btn-primary" onclick="confirmBuyModal('${etf.t}')">Log Buy (local)</button>
+        ${tradierOrderReady() ? `<button class="btn btn-success" onclick="confirmBuyModal('${etf.t}', true)">Send to Tradier + Log</button>` : ''}
       </div>
     </div>
   `;
@@ -715,10 +774,14 @@ function closeBuyModal() {
   if (m) m.remove();
 }
 
-function confirmBuyModal(ticker) {
+async function confirmBuyModal(ticker, sendToTradier) {
   const price = parseFloat(document.getElementById("modalPrice").value);
   const shares = parseInt(document.getElementById("modalShares").value);
   if (!price || price <= 0 || !shares || shares < 1) { alert("Enter valid price and shares."); return; }
+  if (sendToTradier) {
+    const order = await placeTradierOrder(ticker, "buy", shares, "market");
+    if (!order) return; // cancelled or failed — keep modal open, do not log
+  }
   addPosition(ticker, shares, price);
   closeBuyModal();
   render();
@@ -922,6 +985,7 @@ function updateRefreshUI(msg, pct, dotState) {
 async function fetchLiveData() {
   if (STATE.refreshing) return;
   if (STATE.dataProvider === "tradier") return fetchTradierData();
+  if (STATE.dataProvider === "fmp") return fetchFMPData();
   if (!STATE.apiKey) {
     STATE.page = "settings";
     document.querySelectorAll(".nav-item").forEach(i => {
@@ -987,6 +1051,7 @@ async function fetchLiveData() {
 
   STATE.lastRefresh = new Date().toISOString();
   STATE.refreshing = false;
+  recomputeYields();
   saveLivePrices();
   saveState();
   render();
@@ -995,7 +1060,7 @@ async function fetchLiveData() {
 }
 
 function initLiveStatus() {
-  const activeKey = STATE.dataProvider === "tradier" ? STATE.tradierKey : STATE.apiKey;
+  const activeKey = STATE.dataProvider === "tradier" ? STATE.tradierKey : STATE.dataProvider === "fmp" ? STATE.fmpKey : STATE.apiKey;
   if (!activeKey) {
     updateRefreshUI("No API key — set in Settings", -1, "offline");
   } else if (STATE.lastRefresh) {
@@ -1009,7 +1074,8 @@ function initLiveStatus() {
 
 // Auto-refresh every 5 minutes during market hours
 setInterval(() => {
-  if (!STATE.apiKey || STATE.refreshing) return;
+  const activeKey = STATE.dataProvider === "tradier" ? STATE.tradierKey : STATE.dataProvider === "fmp" ? STATE.fmpKey : STATE.apiKey;
+  if (!activeKey || STATE.refreshing) return;
   const now = new Date();
   const day = now.getDay();
   const mins = now.getHours() * 60 + now.getMinutes();
@@ -2166,16 +2232,18 @@ function renderJournal() {
 // PAGE: SETTINGS
 // ═══════════════════════════════════════════════════════
 function renderSettings() {
-  const activeKey = STATE.dataProvider === "tradier" ? STATE.tradierKey : STATE.apiKey;
+  const activeKey = STATE.dataProvider === "tradier" ? STATE.tradierKey : STATE.dataProvider === "fmp" ? STATE.fmpKey : STATE.apiKey;
+  const providerName = STATE.dataProvider === "tradier" ? "Tradier" : STATE.dataProvider === "fmp" ? "FinancialModelingPrep" : "Finnhub";
   return `
     <h2 style="font-size:16px;margin-bottom:16px">Settings</h2>
     <div class="card mb-16">
       <div class="card-title mb-12">Live Market Data</div>
       <div class="form-group mb-12">
         <label>Data Provider</label>
-        <select id="settingProvider" onchange="document.getElementById('finnhubSection').style.display=this.value==='finnhub'?'block':'none';document.getElementById('tradierSection').style.display=this.value==='tradier'?'block':'none';">
+        <select id="settingProvider" onchange="['finnhub','tradier','fmp'].forEach(p=>{var el=document.getElementById(p+'Section');if(el)el.style.display=this.value===p?'block':'none';})">
           <option value="finnhub" ${STATE.dataProvider==="finnhub"?"selected":""}>Finnhub (Individual quotes, 60/min free)</option>
-          <option value="tradier" ${STATE.dataProvider==="tradier"?"selected":""}>Tradier (Batch quotes, faster)</option>
+          <option value="tradier" ${STATE.dataProvider==="tradier"?"selected":""}>Tradier (Batch quotes, faster — also supports orders)</option>
+          <option value="fmp" ${STATE.dataProvider==="fmp"?"selected":""}>FinancialModelingPrep (Batch quotes)</option>
         </select>
       </div>
       <div class="grid grid-2" style="gap:16px;align-items:start">
@@ -2196,14 +2264,27 @@ function renderSettings() {
               <input type="text" id="settingTradierKey" value="${STATE.tradierKey}" placeholder="Paste your Tradier access token..." style="width:100%;font-size:12px">
             </div>
             <div class="form-group">
+              <label>Tradier Account ID (required for orders)</label>
+              <input type="text" id="settingTradierAccountId" value="${STATE.tradierAccountId}" placeholder="e.g. 6YB72268 or VA1234567" style="width:100%;font-size:12px">
+            </div>
+            <div class="form-group">
               <label>Environment</label>
               <select id="settingTradierEnv">
-                <option value="sandbox" ${STATE.tradierEnv==="sandbox"?"selected":""}>Sandbox (free, delayed 15min)</option>
-                <option value="production" ${STATE.tradierEnv==="production"?"selected":""}>Production (real-time, funded acct)</option>
+                <option value="sandbox" ${STATE.tradierEnv==="sandbox"?"selected":""}>Sandbox (free, delayed 15min, paper orders)</option>
+                <option value="production" ${STATE.tradierEnv==="production"?"selected":""}>Production (real-time, funded acct, LIVE orders)</option>
               </select>
             </div>
             <div class="text-xs text-muted mb-12">
-              Get a token at <strong style="color:var(--cyan)">tradier.com</strong> — batch quotes (~2 API calls for all ${ETF_DB.length} ETFs)
+              Get a token at <strong style="color:var(--cyan)">tradier.com</strong> — batch quotes (~1 call/80 ETFs). Account ID is shown in Tradier dashboard → Settings → API Access.
+            </div>
+          </div>
+          <div id="fmpSection" style="display:${STATE.dataProvider==="fmp"?"block":"none"}">
+            <div class="form-group">
+              <label>FinancialModelingPrep API Key</label>
+              <input type="text" id="settingFmpKey" value="${STATE.fmpKey}" placeholder="Paste your FMP API key..." style="width:100%;font-size:12px">
+            </div>
+            <div class="text-xs text-muted mb-12">
+              Get a key at <strong style="color:var(--cyan)">financialmodelingprep.com</strong> — batch quotes (~1 call/50 ETFs, 250 req/day free tier)
             </div>
           </div>
           <button class="btn btn-primary" onclick="saveSettings()" style="margin-right:8px">Save Settings</button>
@@ -2212,7 +2293,7 @@ function renderSettings() {
         <div style="background:var(--bg-input);padding:12px;border-radius:6px">
           <div class="text-xs text-muted mb-8">Connection Status</div>
           <div class="text-sm mb-8">
-            Provider: <span style="color:var(--cyan)">${STATE.dataProvider === "tradier" ? "Tradier" : "Finnhub"}</span>
+            Provider: <span style="color:var(--cyan)">${providerName}</span>
           </div>
           <div class="text-sm mb-8">
             API Key: <span style="color:${activeKey ? 'var(--green)' : 'var(--red)'}">${activeKey ? 'Configured' : 'Not set'}</span>
@@ -2223,6 +2304,32 @@ function renderSettings() {
           <div class="text-sm">
             Auto-Refresh: <span style="color:var(--green)">Every 5 min during market hours</span>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-16">
+      <div class="card-title mb-12">Order Execution (Tradier)</div>
+      <div class="grid grid-2" style="gap:16px;align-items:start">
+        <div>
+          <div class="form-group">
+            <label>Order Routing</label>
+            <select id="settingOrderProvider">
+              <option value="tradier" ${STATE.orderProvider==="tradier"?"selected":""}>Tradier — place equity orders via API</option>
+              <option value="manual" ${STATE.orderProvider==="manual"?"selected":""}>Manual only — log trades, no live orders</option>
+            </select>
+          </div>
+          <div class="text-xs text-muted mb-12">
+            When enabled, Buy/Sell modals show a "Send to Tradier" option that submits a real equity order using the Tradier key, account ID, and environment configured above. Sandbox = paper orders; Production = LIVE money.
+          </div>
+          <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+        </div>
+        <div style="background:var(--bg-input);padding:12px;border-radius:6px">
+          <div class="text-xs text-muted mb-8">Order Routing Status</div>
+          <div class="text-sm mb-8">Routing: <span style="color:var(--cyan)">${STATE.orderProvider === "tradier" ? "Tradier API" : "Manual only"}</span></div>
+          <div class="text-sm mb-8">Account ID: <span style="color:${STATE.tradierAccountId ? 'var(--green)' : 'var(--red)'}">${STATE.tradierAccountId || 'Not set'}</span></div>
+          <div class="text-sm mb-8">Token: <span style="color:${STATE.tradierKey ? 'var(--green)' : 'var(--red)'}">${STATE.tradierKey ? 'Configured' : 'Not set'}</span></div>
+          <div class="text-sm">Mode: <span style="color:${STATE.tradierEnv === 'production' ? 'var(--red)' : 'var(--yellow)'}">${STATE.tradierEnv === 'production' ? 'PRODUCTION (live $)' : 'Sandbox (paper)'}</span></div>
         </div>
       </div>
     </div>
@@ -2498,8 +2605,10 @@ function showSellModal(ticker) {
         <div class="flex flex-between"><span>Dividend:</span> <span id="sellSummaryDiv" class="positive">$${fmt(divPerShare * pos.shares)}</span></div>
         <div class="flex flex-between" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)"><span class="fw-bold">Total Return:</span> <span id="sellSummaryTotal" class="fw-bold positive">$${fmt((currentPrice - pos.avgCost) * pos.shares + divPerShare * pos.shares)}</span></div>
       </div>
-      <div style="display:flex;gap:8px;margin-top:16px">
-        <button class="btn btn-danger" onclick="confirmSellModal('${ticker}')" style="flex:1">Confirm Sell</button>
+      ${tradierOrderReady() ? `<div class="text-xs" style="margin-top:8px;color:${STATE.tradierEnv==='production'?'var(--red)':'var(--yellow)'}">Tradier order routing: <strong>${STATE.tradierEnv==='production'?'PRODUCTION — live funds':'Sandbox — paper'}</strong> (acct ${STATE.tradierAccountId})</div>` : ''}
+      <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+        <button class="btn btn-danger" onclick="confirmSellModal('${ticker}')" style="flex:1;min-width:120px">Log Sell (local)</button>
+        ${tradierOrderReady() ? `<button class="btn btn-success" onclick="confirmSellModal('${ticker}', true)" style="flex:1;min-width:120px">Send to Tradier + Log</button>` : ''}
         <button class="btn" onclick="document.getElementById('sellModal').remove()">Cancel</button>
       </div>
     </div>`;
@@ -2554,12 +2663,16 @@ function showSellModal(ticker) {
   updateSellCalc("init");
 }
 
-function confirmSellModal(ticker) {
+async function confirmSellModal(ticker, sendToTradier) {
   const price = parseFloat(document.getElementById("sellModalPrice").value);
   const shares = parseInt(document.getElementById("sellModalShares").value);
   const includeDiv = document.getElementById("sellModalIncludeDiv").checked;
   const divPs = parseFloat(document.getElementById("sellModalDivPerShare").value) || 0;
   if (!price || price <= 0 || !shares || shares < 1) { alert("Enter valid price and shares."); return; }
+  if (sendToTradier) {
+    const order = await placeTradierOrder(ticker, "sell", shares, "market");
+    if (!order) return; // cancelled or failed — keep modal open, do not log
+  }
   const divAmount = includeDiv ? divPs * shares : 0;
   removePosition(ticker, price, shares, divAmount);
   document.getElementById("sellModal")?.remove();
@@ -2658,8 +2771,11 @@ function saveSettings() {
   const keyChanged = newKey !== STATE.apiKey;
   STATE.apiKey = newKey;
   STATE.tradierKey = document.getElementById("settingTradierKey")?.value?.trim() || STATE.tradierKey;
+  STATE.tradierAccountId = document.getElementById("settingTradierAccountId")?.value?.trim() ?? STATE.tradierAccountId;
+  STATE.fmpKey = document.getElementById("settingFmpKey")?.value?.trim() || STATE.fmpKey;
   STATE.dataProvider = document.getElementById("settingProvider")?.value || STATE.dataProvider;
   STATE.tradierEnv = document.getElementById("settingTradierEnv")?.value || STATE.tradierEnv;
+  STATE.orderProvider = document.getElementById("settingOrderProvider")?.value || STATE.orderProvider;
   saveState();
   render();
   initLiveStatus();
@@ -2850,11 +2966,156 @@ async function fetchTradierData() {
   }
   STATE.lastRefresh = new Date().toISOString();
   STATE.refreshing = false;
+  recomputeYields();
   saveLivePrices();
   saveState();
   render();
   const timeStr = new Date().toLocaleTimeString();
   updateRefreshUI(`${updated} live @ ${timeStr}${failed ? ` (${failed} missed)` : ""}`, -1, "live");
+}
+
+// ═══════════════════════════════════════════════════════
+// FINANCIALMODELINGPREP API (batch quotes)
+// ═══════════════════════════════════════════════════════
+async function fetchFMPData() {
+  if (STATE.refreshing) return;
+  if (!STATE.fmpKey) {
+    STATE.page = "settings";
+    document.querySelectorAll(".nav-item").forEach(i => i.classList.toggle("active", i.dataset.page === "settings"));
+    render();
+    alert("Enter your FinancialModelingPrep API key in Settings first.");
+    return;
+  }
+  STATE.refreshing = true;
+  updateRefreshUI("Connecting to FMP...", 0, "stale");
+  const batchSize = 50; // keep URL length safe
+  let updated = 0, failed = 0;
+  for (let b = 0; b < ETF_DB.length; b += batchSize) {
+    const batch = ETF_DB.slice(b, b + batchSize);
+    const symbols = batch.map(e => e.t).join(",");
+    const pct = Math.round(((b + batch.length) / ETF_DB.length) * 100);
+    updateRefreshUI(`Batch ${Math.floor(b/batchSize)+1} (${b+1}-${b+batch.length}/${ETF_DB.length})`, pct, "stale");
+    try {
+      const resp = await fetch(`https://financialmodelingprep.com/api/v3/quote/${symbols}?apikey=${encodeURIComponent(STATE.fmpKey)}`);
+      if (resp.status === 401 || resp.status === 403) {
+        STATE.refreshing = false;
+        updateRefreshUI("Invalid FMP key", -1, "offline");
+        alert("Invalid FinancialModelingPrep API key. Check your key in Settings.");
+        return;
+      }
+      if (resp.status === 429) {
+        updateRefreshUI("FMP rate limited — waiting...", pct, "stale");
+        await new Promise(r => setTimeout(r, 2000));
+        b -= batchSize;
+        continue;
+      }
+      const data = await resp.json();
+      if (!Array.isArray(data)) { failed += batch.length; continue; }
+      data.forEach(q => {
+        const etf = ETF_DB.find(e => e.t === q.symbol);
+        if (etf && q.price && q.price > 0) {
+          etf.p = q.price;
+          etf.dayChange = (q.changesPercentage != null) ? q.changesPercentage : 0;
+          etf.dayChangeAbs = q.change || 0;
+          etf.high = q.dayHigh || etf.p;
+          etf.low = q.dayLow || etf.p;
+          etf.prevClose = q.previousClose || etf.p;
+          const dp = etf.dayChange;
+          if (dp > 3) etf.mom = Math.min(100, etf.mom + 4);
+          else if (dp > 1) etf.mom = Math.min(100, etf.mom + 2);
+          else if (dp > 0) etf.mom = Math.min(100, etf.mom + 1);
+          else if (dp < -3) etf.mom = Math.max(0, etf.mom - 4);
+          else if (dp < -1) etf.mom = Math.max(0, etf.mom - 2);
+          else if (dp < 0) etf.mom = Math.max(0, etf.mom - 1);
+          updated++;
+        } else { failed++; }
+      });
+    } catch (e) {
+      console.warn("FMP batch failed:", e);
+      failed += batch.length;
+    }
+    if (b + batchSize < ETF_DB.length) await new Promise(r => setTimeout(r, 300));
+  }
+  STATE.lastRefresh = new Date().toISOString();
+  STATE.refreshing = false;
+  recomputeYields();
+  saveLivePrices();
+  saveState();
+  render();
+  const timeStr = new Date().toLocaleTimeString();
+  updateRefreshUI(`${updated} live @ ${timeStr}${failed ? ` (${failed} missed)` : ""}`, -1, "live");
+}
+
+// ═══════════════════════════════════════════════════════
+// TRADIER ORDER EXECUTION (equity orders)
+// Guardrails: requires explicit user confirmation each time;
+// loud warning on production (live money); sandbox by default.
+// ═══════════════════════════════════════════════════════
+function tradierOrderReady() {
+  return STATE.orderProvider === "tradier" && !!STATE.tradierKey && !!STATE.tradierAccountId;
+}
+
+async function placeTradierOrder(symbol, side, quantity, orderType, limitPrice) {
+  if (!STATE.tradierKey) { alert("Tradier API token not set (Settings → Live Market Data)."); return null; }
+  if (!STATE.tradierAccountId) { alert("Tradier Account ID not set (Settings → Live Market Data)."); return null; }
+  quantity = parseInt(quantity);
+  if (!quantity || quantity < 1) { alert("Invalid quantity."); return null; }
+  orderType = orderType || "market";
+
+  const isProd = STATE.tradierEnv === "production";
+  const baseUrl = isProd ? "https://api.tradier.com" : "https://sandbox.tradier.com";
+  const envLabel = isProd ? "PRODUCTION (REAL MONEY)" : "SANDBOX (paper)";
+  const px = orderType === "limit" ? ` @ limit $${fmt(limitPrice)}` : " @ market";
+  const confirmMsg =
+    `Submit this order to Tradier?\n\n` +
+    `  ${side.toUpperCase()} ${quantity} ${symbol}${px}\n` +
+    `  Account: ${STATE.tradierAccountId}\n` +
+    `  Environment: ${envLabel}\n\n` +
+    (isProd ? "⚠️ THIS WILL USE REAL FUNDS IN YOUR LIVE ACCOUNT.\n\n" : "") +
+    `Click OK to send the order.`;
+  if (!confirm(confirmMsg)) return null;
+
+  const params = new URLSearchParams({
+    class: "equity",
+    symbol: symbol,
+    side: side,
+    quantity: String(quantity),
+    type: orderType,
+    duration: "day"
+  });
+  if (orderType === "limit") params.set("price", String(limitPrice));
+
+  try {
+    const resp = await fetch(`${baseUrl}/v1/accounts/${encodeURIComponent(STATE.tradierAccountId)}/orders`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${STATE.tradierKey}`,
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: params.toString()
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (resp.status === 401 || resp.status === 403) {
+      alert("Tradier rejected the order: invalid token or account not authorized.");
+      return null;
+    }
+    if (data && data.errors && data.errors.error) {
+      const errs = Array.isArray(data.errors.error) ? data.errors.error.join("; ") : data.errors.error;
+      alert("Tradier order error: " + errs);
+      return null;
+    }
+    if (data && data.order && (data.order.id || data.order.status)) {
+      alert(`Order submitted to Tradier.\nOrder ID: ${data.order.id || "—"}\nStatus: ${data.order.status || "—"}`);
+      return data.order;
+    }
+    alert("Unexpected Tradier response:\n" + JSON.stringify(data).slice(0, 300));
+    return null;
+  } catch (e) {
+    console.warn("Tradier order failed:", e);
+    alert("Tradier order request failed: " + e.message + "\n(Browser CORS may block direct order calls — see note in Settings.)");
+    return null;
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -3276,7 +3537,7 @@ function loadTVWidget(ticker) {
 // ═══════════════════════════════════════════════════════
 function exportAllData() {
   const data = {
-    version: "5.0",
+    version: "5.3",
     exportDate: new Date().toISOString(),
     portfolio: STATE.portfolio,
     tradeLog: STATE.tradeLog,
@@ -3478,7 +3739,7 @@ render();
 initLiveStatus();
 
 // Auto-fetch on load if API key exists and data is stale (>10 min old)
-const activeApiKey = STATE.dataProvider === "tradier" ? STATE.tradierKey : STATE.apiKey;
+const activeApiKey = STATE.dataProvider === "tradier" ? STATE.tradierKey : STATE.dataProvider === "fmp" ? STATE.fmpKey : STATE.apiKey;
 if (activeApiKey) {
   const staleMs = STATE.lastRefresh ? Date.now() - new Date(STATE.lastRefresh).getTime() : Infinity;
   if (staleMs > 10 * 60 * 1000) {
