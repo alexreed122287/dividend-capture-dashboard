@@ -246,11 +246,11 @@ input:focus, select:focus { outline:none; border-color: var(--accent); }
       <div class="nav-item" data-page="allocator"><span class="icon">&#9878;</span> Capital Allocator</div>
       <div class="nav-item" data-page="analytics"><span class="icon">&#9651;</span> Analytics</div>
       <div class="nav-item" data-page="journal"><span class="icon">&#9998;</span> Trade Journal</div>
-      <div class="nav-item" data-page="charts"><span class="icon">&#9636;</span> Charts</div>
+      <div class="nav-item" data-page="charts"><span class="icon">&#9636;</span> Rankings</div>
       <div class="nav-item" data-page="settings"><span class="icon">&#9881;</span> Settings</div>
     </div>
     <div class="sidebar-footer">
-      <div>RRJCAR v5.3</div>
+      <div>RRJCAR v5.4</div>
       <div style="margin-top:4px;" id="providerFooter">Live Data</div>
     </div>
   </div>
@@ -509,6 +509,7 @@ const STATE = {
   chartTicker: "TSLY",
   chartDayFilter: "All",
   lastRefresh: localStorage.getItem("dcp_lastRefresh") || null,
+  technicalsRefresh: null,
   refreshing: false,
   sortCol: "mom",
   sortDir: -1,
@@ -654,6 +655,216 @@ function captureEfficiency(etf) {
   const grossYieldAnnual = etf.ay;
   const netReturn = etf.tr;
   return Math.max(0, Math.min(100, (netReturn / grossYieldAnnual * 100))).toFixed(0);
+}
+
+// ═══════════════════════════════════════════════════════
+// TECHNICALS: EMA + earnings (powers ticker highlighting)
+// ═══════════════════════════════════════════════════════
+// Exponential moving average from oldest->newest closes.
+function emaFromCloses(closes, period) {
+  if (!closes || closes.length < period) return null;
+  const k = 2 / (period + 1);
+  let ema = closes.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < closes.length; i++) ema = closes[i] * k + ema * (1 - k);
+  return ema;
+}
+
+function getNextTradingDay(from) {
+  const d = new Date(from || new Date());
+  d.setDate(d.getDate() + 1);
+  if (d.getDay() === 6) d.setDate(d.getDate() + 2);
+  if (d.getDay() === 0) d.setDate(d.getDate() + 1);
+  return d;
+}
+
+// Best-effort underlying equity symbol for single-name ETFs (for earnings).
+function underlyingSymbol(e) {
+  if (!/Single Stock|Short CC|Leveraged CC/.test(e.type)) return null;
+  let s = (e.u || "").split(/[\s/(]/)[0].toUpperCase().replace(/\./g, "-");
+  if (!/^[A-Z]{1,5}-?[A-Z]?$/.test(s)) return null;
+  if (["BTC", "ETH", "GLD", "GDX", "ARKK", "TLT", "SPY", "QQQ"].includes(s)) return null;
+  return s;
+}
+
+function fmtEarnings(e) {
+  if (!e.earnDate) return null;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const next = getNextTradingDay(today); next.setHours(0, 0, 0, 0);
+  const ed = new Date(e.earnDate + "T00:00:00");
+  let when;
+  if (ed.getTime() === today.getTime()) when = "today";
+  else if (ed.getTime() === next.getTime()) when = "tomorrow";
+  else if (ed > today && ed <= next) when = "tomorrow";
+  else return null; // not within today / next trading day
+  const t = (e.earnTime || "").toLowerCase();
+  let session = "time TBD";
+  if (t === "bmo" || t.includes("before")) session = "before bell";
+  else if (t === "amc" || t.includes("after")) session = "after market close";
+  else if (/^\d{1,2}:\d{2}/.test(t)) session = "at " + t;
+  return { when, session, text: `Earnings ${when} ${session}` };
+}
+
+// Returns {cls, star, tip} or null. Precedence: red (price<50EMA) is the
+// strongest avoid signal, then yellow (earnings risk today/next day),
+// then green (10>20 EMA & price>50EMA), with a star if also price>10EMA.
+function tickerStatus(e) {
+  const hasEma = e.ema10 != null && e.ema20 != null && e.ema50 != null && e.p > 0;
+  const earn = fmtEarnings(e);
+  if (!hasEma && !earn) return null;
+  let cls = "", star = false;
+  const tips = [];
+  if (hasEma) {
+    if (e.p < e.ema50) { cls = "red"; tips.push("Price below 50 EMA"); }
+    else if (e.ema10 > e.ema20 && e.p > e.ema50) {
+      cls = "green";
+      if (e.p > e.ema10) { star = true; tips.push("10>20 EMA, price > 50 & 10 EMA"); }
+      else tips.push("10>20 EMA, price > 50 EMA");
+    }
+  }
+  if (earn) {
+    tips.push(earn.text);
+    if (cls !== "red") cls = "yellow";
+  }
+  if (!cls) return earn ? { cls: "yellow", star: false, tip: tips.join(" · "), earn } : null;
+  return { cls, star, tip: tips.join(" · "), earn };
+}
+
+function statusColorVar(cls) {
+  return cls === "red" ? "var(--red)" : cls === "yellow" ? "var(--yellow)" : cls === "green" ? "var(--green)" : "var(--text-primary)";
+}
+
+// Restore cached technicals so highlighting survives reloads.
+(function restoreTechnicals() {
+  try {
+    const cached = JSON.parse(localStorage.getItem("dcp_technicals") || "null");
+    if (cached && cached.data) {
+      ETF_DB.forEach(e => {
+        const t = cached.data[e.t];
+        if (t) { e.ema10 = t.e10; e.ema20 = t.e20; e.ema50 = t.e50; e.earnDate = t.ed; e.earnTime = t.et; }
+      });
+      STATE.technicalsRefresh = cached.ts || null;
+    }
+  } catch (err) {}
+})();
+
+function saveTechnicals() {
+  const data = {};
+  ETF_DB.forEach(e => {
+    if (e.ema10 != null || e.earnDate) data[e.t] = { e10: e.ema10, e20: e.ema20, e50: e.ema50, ed: e.earnDate, et: e.earnTime };
+  });
+  localStorage.setItem("dcp_technicals", JSON.stringify({ ts: STATE.technicalsRefresh, data }));
+}
+
+async function loadTechnicals() {
+  if (STATE.refreshing) return;
+  const useFmp = !!STATE.fmpKey;
+  const useTradier = !useFmp && !!STATE.tradierKey;
+  if (!useFmp && !useTradier) {
+    alert("Technicals need an FinancialModelingPrep key (EMA + earnings) or a Tradier key (EMA only). Set one in Settings.");
+    return;
+  }
+  STATE.refreshing = true;
+  updateRefreshUI("Loading technicals...", 0, "stale");
+
+  // 1) Earnings calendar — single FMP call covering today..+6 days
+  if (useFmp) {
+    try {
+      const today = new Date();
+      const to = new Date(); to.setDate(to.getDate() + 6);
+      const iso = d => d.toISOString().split("T")[0];
+      const r = await fetch(`https://financialmodelingprep.com/api/v3/earning_calendar?from=${iso(today)}&to=${iso(to)}&apikey=${encodeURIComponent(STATE.fmpKey)}`);
+      const arr = await r.json();
+      const map = {};
+      if (Array.isArray(arr)) arr.forEach(x => { if (x.symbol && !map[x.symbol]) map[x.symbol] = { date: x.date, time: x.time }; });
+      ETF_DB.forEach(e => {
+        e.earnDate = null; e.earnTime = null;
+        const sym = underlyingSymbol(e);
+        if (sym && map[sym]) { e.earnDate = (map[sym].date || "").split(" ")[0]; e.earnTime = map[sym].time || ""; }
+      });
+    } catch (err) { console.warn("earnings fetch failed", err); }
+  }
+
+  // 2) EMAs from historical closes (FMP batched, else Tradier per-symbol)
+  let done = 0, failed = 0;
+  const setEmas = (etf, closesOldToNew) => {
+    const e10 = emaFromCloses(closesOldToNew, 10), e20 = emaFromCloses(closesOldToNew, 20), e50 = emaFromCloses(closesOldToNew, 50);
+    if (e10 != null && e20 != null && e50 != null) { etf.ema10 = e10; etf.ema20 = e20; etf.ema50 = e50; done++; }
+    else failed++;
+  };
+
+  if (useFmp) {
+    const batchSize = 5;
+    for (let b = 0; b < ETF_DB.length; b += batchSize) {
+      const batch = ETF_DB.slice(b, b + batchSize);
+      const pct = Math.round(((b + batch.length) / ETF_DB.length) * 100);
+      updateRefreshUI(`Technicals ${b + batch.length}/${ETF_DB.length}`, pct, "stale");
+      try {
+        const url = `https://financialmodelingprep.com/api/v3/historical-price-full/${batch.map(e => e.t).join(",")}?serietype=line&timeseries=70&apikey=${encodeURIComponent(STATE.fmpKey)}`;
+        const resp = await fetch(url);
+        if (resp.status === 429) { await new Promise(r => setTimeout(r, 2000)); b -= batchSize; continue; }
+        const data = await resp.json();
+        const list = data.historicalStockList || (data.symbol ? [data] : []);
+        list.forEach(item => {
+          const etf = ETF_DB.find(e => e.t === item.symbol);
+          if (etf && Array.isArray(item.historical)) {
+            const closes = item.historical.map(h => h.close).reverse(); // FMP is newest-first
+            setEmas(etf, closes);
+          }
+        });
+      } catch (err) { console.warn("FMP history batch failed", err); failed += batch.length; }
+      await new Promise(r => setTimeout(r, 250));
+    }
+  } else {
+    const baseUrl = STATE.tradierEnv === "production" ? "https://api.tradier.com" : "https://sandbox.tradier.com";
+    const end = new Date().toISOString().split("T")[0];
+    const startD = new Date(); startD.setDate(startD.getDate() - 110);
+    const start = startD.toISOString().split("T")[0];
+    for (let i = 0; i < ETF_DB.length; i++) {
+      const etf = ETF_DB[i];
+      const pct = Math.round(((i + 1) / ETF_DB.length) * 100);
+      updateRefreshUI(`Technicals ${i + 1}/${ETF_DB.length}`, pct, "stale");
+      try {
+        const resp = await fetch(`${baseUrl}/v1/markets/history?symbol=${etf.t}&interval=daily&start=${start}&end=${end}`, {
+          headers: { "Authorization": `Bearer ${STATE.tradierKey}`, "Accept": "application/json" }
+        });
+        const data = await resp.json();
+        let days = data?.history?.day;
+        if (days) { days = Array.isArray(days) ? days : [days]; setEmas(etf, days.map(d => d.close)); }
+        else failed++;
+      } catch (err) { failed++; }
+      await new Promise(r => setTimeout(r, 200));
+    }
+  }
+
+  STATE.technicalsRefresh = new Date().toISOString();
+  STATE.refreshing = false;
+  saveTechnicals();
+  render();
+  updateRefreshUI(`Technicals: ${done} loaded${failed ? ` (${failed} missed)` : ""} @ ${new Date().toLocaleTimeString()}`, -1, "live");
+}
+
+// Copy a day's recommended buy tickers, ranked by dividend (high→low).
+function copyDayTickers(dayName) {
+  const now = new Date();
+  const todayDow = now.getDay() === 0 ? 6 : now.getDay() - 1;
+  const dayIdx = DAYS.indexOf(dayName);
+  const dayDate = new Date(now);
+  dayDate.setDate(now.getDate() + (dayIdx - todayDow));
+  const nextDay = DAYS[(dayIdx + 1) % 5];
+  const nextDayDate = new Date(dayDate);
+  nextDayDate.setDate(dayDate.getDate() + 1);
+  if (nextDayDate.getDay() === 6) nextDayDate.setDate(nextDayDate.getDate() + 2);
+  if (nextDayDate.getDay() === 0) nextDayDate.setDate(nextDayDate.getDate() + 1);
+  const buyWeekly = ETF_DB.filter(e => e.freq === "W" && e.exDay === nextDay);
+  const buyMonthly = getMonthlyBuySignalsForDate(nextDayDate);
+  let list = [...buyWeekly, ...buyMonthly];
+  if (list.length === 0) list = ETF_DB.filter(e => e.freq === "W" && e.exDay === dayName); // fallback: ex-div-today
+  const ranked = list.sort((a, b) => b.div - a.div).map(e => e.t);
+  const str = ranked.join(", ");
+  navigator.clipboard.writeText(str).then(() => {
+    const el = document.getElementById("copyStatus-" + dayName);
+    if (el) { el.textContent = `Copied ${ranked.length}`; setTimeout(() => { el.textContent = ""; }, 2500); }
+  }, () => alert("Copy failed:\n" + str));
 }
 
 function positionSize(etf) {
@@ -1097,7 +1308,7 @@ function render() {
     case "allocator": content.innerHTML = renderAllocator(); break;
     case "analytics": content.innerHTML = renderAnalytics(); break;
     case "journal": content.innerHTML = renderJournal(); break;
-    case "charts": content.innerHTML = renderCharts(); loadTVWidget(STATE.chartTicker); break;
+    case "charts": content.innerHTML = renderCharts(); break;
     case "settings": content.innerHTML = renderSettings(); break;
   }
   bindEvents();
@@ -1353,9 +1564,23 @@ function renderScanner() {
 // ═══════════════════════════════════════════════════════
 function renderCalendar() {
   const today = getTodayDayName();
+  const techAgo = STATE.technicalsRefresh ? Math.round((Date.now() - new Date(STATE.technicalsRefresh).getTime()) / 60000) : null;
   return `
-    <h2 style="font-size:16px;margin-bottom:16px">Weekly Trading Calendar — Buy & Sell Actions</h2>
-    <div class="alert alert-info mb-16">🟢 BUY = purchase today to capture tomorrow's dividend. 🔴 SELL = ex-div today, sell after price stabilizes.</div>
+    <div class="flex flex-between flex-center mb-12" style="flex-wrap:wrap;gap:8px">
+      <h2 style="font-size:16px">Weekly Trading Calendar — Buy & Sell Actions</h2>
+      <div class="flex flex-center gap-8">
+        <button class="btn btn-sm btn-primary" onclick="loadTechnicals()">Load Technicals (EMA + Earnings)</button>
+        <span class="text-xs text-muted">${techAgo != null ? `Updated ${techAgo < 1 ? 'just now' : techAgo + 'm ago'}` : 'Not loaded'}</span>
+      </div>
+    </div>
+    <div class="alert alert-info mb-12">🟢 BUY = purchase today to capture tomorrow's dividend. 🔴 SELL = ex-div today, sell after price stabilizes.</div>
+    <div class="flex flex-center mb-16 text-xs" style="gap:14px;flex-wrap:wrap;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px">
+      <span class="text-muted fw-bold">Highlights:</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--green);vertical-align:middle"></span> 10&gt;20 EMA &amp; price&gt;50 EMA</span>
+      <span><span style="color:var(--gold,#f59e0b)">★</span> + price also &gt; 10 EMA</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--red);vertical-align:middle"></span> price below 50 EMA</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--yellow);vertical-align:middle"></span> ⚠ earnings today / next trading day</span>
+    </div>
     <div class="calendar-grid">
       ${DAYS.map(day => {
         const now = new Date();
@@ -1376,49 +1601,55 @@ function renderCalendar() {
         const allSells = [...sellWeekly, ...sellMonthly].sort((a,b) => parseFloat(compositeScore(b)) - parseFloat(compositeScore(a)));
         const buyWeekly = ETF_DB.filter(e => e.freq === "W" && e.exDay === nextDay);
         const buyMonthly = getMonthlyBuySignalsForDate(nextDayDate);
-        const allBuys = [...buyWeekly, ...buyMonthly].sort((a,b) => parseFloat(compositeScore(b)) - parseFloat(compositeScore(a)));
+        // BUY list ranked by dividend amount (high → low) per user request
+        const allBuys = [...buyWeekly, ...buyMonthly].sort((a,b) => b.div - a.div);
         const isToday = day === today;
         const totalActions = allSells.length + allBuys.length;
         const scoreBadge = (s) => {
           const c = s >= 70 ? 'var(--green)' : s >= 50 ? 'var(--orange)' : 'var(--red)';
           return '<span style="background:' + c + '22;color:' + c + ';padding:1px 4px;border-radius:3px;font-size:10px;font-weight:600">' + s + '</span>';
         };
+        const calRow = (e, i, side) => {
+          const st = tickerStatus(e);
+          const rowBg = st ? `var(--${st.cls}-dim)` : '';
+          const baseBorder = side === 'sell' ? 'var(--red)' : (i === 0 ? 'var(--gold, #f59e0b)' : i < 3 ? 'var(--green)' : 'var(--border)');
+          const borderC = st ? statusColorVar(st.cls) : baseBorder;
+          const tickC = st ? statusColorVar(st.cls) : (side === 'sell' ? 'var(--red)' : (i < 3 ? 'var(--gold, #f59e0b)' : 'var(--accent)'));
+          const rankC = side === 'sell' ? 'var(--text-muted)' : (i < 3 ? 'var(--gold, #f59e0b)' : 'var(--text-muted)');
+          return `
+            <div class="cal-etf" style="display:block;border-left:2px solid ${borderC};padding-left:6px;background:${rowBg}" title="${st ? st.tip.replace(/"/g,'') : (e.n||'').replace(/"/g,'')}">
+              <div style="display:flex;align-items:center;gap:4px">
+                <span style="color:${rankC};font-size:10px;min-width:18px;font-weight:${i < 3 ? '700' : '400'}">#${i+1}</span>
+                <span class="fw-bold" style="color:${tickC}">${e.t}${st && st.star ? ' <span style="color:var(--gold,#f59e0b)">★</span>' : ''}</span>
+                ${e.freq === "M" ? '<span style="background:#a78bfa22;color:#a78bfa;padding:0 3px;border-radius:2px;font-size:9px;font-weight:700">M</span>' : ''}
+                ${scoreBadge(compositeScore(e))}
+                <span class="positive text-xs" style="margin-left:auto">${side === 'sell' ? '+' : ''}$${fmt(e.div)}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;margin-left:22px">
+                <span class="text-xs text-muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px">${e.n}</span>
+                ${st && st.earn ? `<span class="text-xs fw-bold" style="color:var(--yellow);white-space:nowrap">⚠ ${st.earn.text}</span>` : ''}
+              </div>
+            </div>`;
+        };
         return `
           <div class="cal-day ${isToday ? 'today' : ''}" style="min-height:180px">
             <div class="cal-day-header flex flex-between">
               <span>${day}${isToday ? ' (TODAY)' : ''}</span>
-              <span class="text-xs text-muted">${totalActions} actions</span>
+              <span class="flex flex-center gap-8">
+                <span class="text-xs text-muted">${totalActions} actions</span>
+                ${totalActions > 0 ? `<button class="btn btn-sm" style="padding:2px 7px;font-size:9px" onclick="copyDayTickers('${day}')" title="Copy buy tickers for ${day}, ranked by dividend (high→low)">Copy All</button><span id="copyStatus-${day}" class="text-xs positive"></span>` : ''}
+              </span>
             </div>
             ${allSells.length > 0 ? `
               <div style="margin-bottom:8px">
                 <div class="text-xs fw-bold" style="color:var(--red);margin-bottom:4px">🔴 SELL (ex-div today) — ${allSells.length}</div>
-                ${allSells.map((e, i) => `
-                  <div class="cal-etf" style="border-left:2px solid var(--red);padding-left:6px">
-                    <span style="display:flex;align-items:center;gap:4px">
-                      <span style="color:var(--text-muted);font-size:10px;min-width:18px">#${i+1}</span>
-                      <span class="fw-bold" style="color:var(--red)">${e.t}</span>
-                      ${e.freq === "M" ? '<span style="background:#a78bfa22;color:#a78bfa;padding:0 3px;border-radius:2px;font-size:9px;font-weight:700">M</span>' : ''}
-                      ${scoreBadge(compositeScore(e))}
-                    </span>
-                    <span class="positive text-xs">+$${fmt(e.div)}</span>
-                  </div>
-                `).join("")}
+                ${allSells.map((e, i) => calRow(e, i, 'sell')).join("")}
               </div>
             ` : ''}
             ${allBuys.length > 0 ? `
               <div>
-                <div class="text-xs fw-bold" style="color:var(--green);margin-bottom:4px">🟢 BUY RANKED — ${allBuys.length}</div>
-                ${allBuys.map((e, i) => `
-                  <div class="cal-etf" style="border-left:2px solid ${i === 0 ? 'var(--gold, #f59e0b)' : i < 3 ? 'var(--green)' : 'var(--border)'};padding-left:6px">
-                    <span style="display:flex;align-items:center;gap:4px">
-                      <span style="color:${i < 3 ? 'var(--gold, #f59e0b)' : 'var(--text-muted)'};font-size:10px;min-width:18px;font-weight:${i < 3 ? '700' : '400'}">#${i+1}</span>
-                      <span class="fw-bold" style="color:${i < 3 ? 'var(--gold, #f59e0b)' : 'var(--accent)'}">${e.t}</span>
-                      ${e.freq === "M" ? '<span style="background:#a78bfa22;color:#a78bfa;padding:0 3px;border-radius:2px;font-size:9px;font-weight:700">M</span>' : ''}
-                      ${scoreBadge(compositeScore(e))}
-                    </span>
-                    <span class="positive text-xs">$${fmt(e.div)}</span>
-                  </div>
-                `).join("")}
+                <div class="text-xs fw-bold" style="color:var(--green);margin-bottom:4px">🟢 BUY RANKED (by div) — ${allBuys.length}</div>
+                ${allBuys.map((e, i) => calRow(e, i, 'buy')).join("")}
               </div>
             ` : ''}
             ${totalActions === 0 ? '<div class="text-muted text-xs" style="padding:20px 0;text-align:center">No actions this day</div>' : ''}
@@ -1558,16 +1789,25 @@ function renderActionCard(e, availableCapital, isToday) {
   const cardClass = signal === "BUY" ? "buy" : signal === "CAUTION" ? "caution" : "hold";
   const sigClass = signal === "BUY" ? "signal-buy" : signal === "CAUTION" ? "signal-caution" : "signal-hold";
 
+  const st = tickerStatus(e);
+  const tickC = st ? statusColorVar(st.cls) : 'var(--accent)';
+  const techBadge = !st ? ''
+    : st.cls === 'red' ? '<span class="badge badge-red" style="margin-left:8px">BELOW 50 EMA</span>'
+    : st.cls === 'yellow' ? '<span class="badge badge-yellow" style="margin-left:8px">⚠ EARNINGS</span>'
+    : `<span class="badge badge-green" style="margin-left:8px">BULLISH${st.star ? ' ★' : ''}</span>`;
+
   return `
-    <div class="action-card ${cardClass}">
+    <div class="action-card ${cardClass}" style="${st ? `background:${'var(--'+st.cls+'-dim)'}` : ''}">
       <div class="flex flex-between flex-center mb-8">
         <div>
           <span class="signal ${sigClass}"><span class="signal-dot"></span>${signal}</span>
-          <span class="fw-bold" style="margin-left:8px;color:var(--accent)">${e.t}</span>
+          <span class="fw-bold" style="margin-left:8px;color:${tickC}">${e.t}${st && st.star ? ' <span style="color:var(--gold,#f59e0b)">★</span>' : ''}</span>
           <span class="text-muted text-xs" style="margin-left:8px">${e.n}</span>
+          ${techBadge}
         </div>
         <span class="text-xs">Score: <span class="fw-bold">${compositeScore(e)}</span></span>
       </div>
+      ${st && st.earn ? `<div class="text-xs fw-bold mb-8" style="color:var(--yellow)">⚠ ${st.earn.text} — dividend-capture risk</div>` : ''}
       <div class="grid grid-4" style="grid-template-columns:repeat(6,1fr);gap:8px;font-size:11px">
         <div><span class="text-muted">Price:</span> $${fmt(e.p)}</div>
         <div><span class="text-muted">Underlying:</span> ${e.u}</div>
@@ -3426,10 +3666,9 @@ function deleteJournalEntryModal(index) {
 }
 
 // ═══════════════════════════════════════════════════════
-// PAGE: TRADINGVIEW CHARTS
+// PAGE: RANKINGS (technical + dividend leaderboard)
 // ═══════════════════════════════════════════════════════
 function renderCharts() {
-  // Buy-date labels: buy day is the day BEFORE ex-div day
   const buyDayMap = { Mon: "Fri", Tue: "Mon", Wed: "Tue", Thu: "Wed", Fri: "Thu" };
   const exDayFromBuy = { Fri: "Mon", Mon: "Tue", Tue: "Wed", Wed: "Thu", Thu: "Fri" };
   const buyDays = ["All", "Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -3438,44 +3677,72 @@ function renderCharts() {
   if (STATE.chartDayFilter === "All") {
     filtered = ETF_DB.filter(e => e.freq === "W");
   } else {
-    // chartDayFilter stores buy day; convert to ex-div day for filtering
     const targetExDay = exDayFromBuy[STATE.chartDayFilter];
     filtered = ETF_DB.filter(e => e.freq === "W" && e.exDay === targetExDay);
   }
-  const sorted = [...filtered].sort((a,b) => compositeScore(b) - compositeScore(a));
+  const sorted = [...filtered].sort((a,b) => parseFloat(compositeScore(b)) - parseFloat(compositeScore(a)));
   const selETF = ETF_DB.find(e => e.t === STATE.chartTicker);
+  const techAgo = STATE.technicalsRefresh ? Math.round((Date.now() - new Date(STATE.technicalsRefresh).getTime()) / 60000) : null;
   return `
-    <div style="margin-bottom:12px">
-      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
-        ${buyDays.map(d => `<button class="btn btn-sm ${STATE.chartDayFilter===d?'btn-primary':''}" onclick="STATE.chartDayFilter='${d}';render();loadTVWidget(STATE.chartTicker)">${d === "All" ? "All Days" : d + " Buy"}</button>`).join("")}
+    <div class="flex flex-between flex-center mb-12" style="flex-wrap:wrap;gap:8px">
+      <h2 style="font-size:16px">Rankings — Technical &amp; Dividend Leaderboard</h2>
+      <div class="flex flex-center gap-8">
+        <button class="btn btn-sm btn-primary" onclick="loadTechnicals()">Load Technicals (EMA + Earnings)</button>
+        <span class="text-xs text-muted">${techAgo != null ? `Updated ${techAgo < 1 ? 'just now' : techAgo + 'm ago'}` : 'Not loaded'}</span>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:210px 1fr;gap:12px;margin-bottom:12px">
-      <div style="max-height:520px;overflow-y:auto;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px">
-        <div class="text-xs text-muted fw-bold" style="padding:4px 6px;margin-bottom:4px;border-bottom:1px solid var(--border)">RANK — TICKER — SCORE</div>
-        ${sorted.map((e, i) => {
-          const sc = compositeScore(e);
-          const isActive = STATE.chartTicker === e.t;
-          const scColor = sc >= 70 ? 'var(--green)' : sc >= 50 ? 'var(--yellow)' : 'var(--orange)';
-          const buyDay = buyDayMap[e.exDay] || '?';
-          return `<div onclick="STATE.chartTicker='${e.t}';loadTVWidget('${e.t}');document.getElementById('chartInfo').innerHTML=getChartInfo('${e.t}');document.querySelectorAll('.ticker-list-item').forEach(el=>el.style.background='');this.style.background='var(--bg-card-hover)'" class="ticker-list-item" style="display:flex;align-items:center;gap:6px;padding:5px 6px;cursor:pointer;border-radius:4px;border-left:3px solid ${isActive ? 'var(--accent)' : 'transparent'};background:${isActive ? 'var(--bg-card-hover)' : ''};font-size:11px;transition:background 0.1s">
-            <span style="min-width:22px;color:var(--text-muted);font-size:10px">#${i+1}</span>
-            <span class="fw-bold" style="color:${isActive ? 'var(--accent)' : 'var(--text-primary)'}; min-width:44px">${e.t}</span>
-            <span style="color:${scColor};font-weight:600;font-size:10px">${sc}</span>
-            <span class="positive" style="margin-left:auto;font-size:10px">$${fmt(e.div)}</span>
-          </div>`;
-        }).join("")}
-      </div>
-      <div>
-        <div id="tv-widget" style="height:500px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border);overflow:hidden"></div>
-      </div>
+    <div class="flex flex-center mb-12 text-xs" style="gap:14px;flex-wrap:wrap;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px">
+      <span class="text-muted fw-bold">Highlights:</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--green);vertical-align:middle"></span> 10&gt;20 EMA &amp; price&gt;50 EMA</span>
+      <span><span style="color:var(--gold,#f59e0b)">★</span> + price also &gt; 10 EMA</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--red);vertical-align:middle"></span> price below 50 EMA</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--yellow);vertical-align:middle"></span> ⚠ earnings today / next trading day</span>
     </div>
-    <div style="background:var(--bg-input);border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:10px;color:var(--text-muted)">
-      EMAs (10/20/50) are added automatically. To customize colors or add indicators, use the chart's settings gear icon. Order blocks require TradingView Pro — not available in the free embed widget.
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+      ${buyDays.map(d => `<button class="btn btn-sm ${STATE.chartDayFilter===d?'btn-primary':''}" onclick="STATE.chartDayFilter='${d}';render()">${d === "All" ? "All Days" : d + " Buy"}</button>`).join("")}
     </div>
-    <div id="chartInfo" class="card" style="padding:12px">
-      ${selETF ? getChartInfoHTML(selETF) : '<div class="text-muted">Select a ticker above</div>'}
+    <div id="chartInfo" class="card mb-12" style="padding:12px">
+      ${selETF ? getChartInfoHTML(selETF) : '<div class="text-muted">Select a ticker below</div>'}
     </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Ticker</th><th>Name</th><th>Underlying</th><th>Ex-Div</th>
+          <th>Price</th><th>10 EMA</th><th>20 EMA</th><th>50 EMA</th><th>Signal</th>
+          <th>Score</th><th>Div/Sh</th><th>Wk Yld%</th>
+        </tr></thead>
+        <tbody>
+          ${sorted.map((e, i) => {
+            const sc = compositeScore(e);
+            const scColor = sc >= 70 ? 'var(--green)' : sc >= 50 ? 'var(--yellow)' : 'var(--orange)';
+            const st = tickerStatus(e);
+            const rowBg = st ? `var(--${st.cls}-dim)` : '';
+            const tickC = st ? statusColorVar(st.cls) : 'var(--accent)';
+            const hasE = e.ema10 != null;
+            const sigBadge = !st ? '<span class="text-muted">—</span>'
+              : st.cls === 'red' ? '<span class="badge badge-red">BELOW 50</span>'
+              : st.cls === 'yellow' ? '<span class="badge badge-yellow">⚠ EARNINGS</span>'
+              : `<span class="badge badge-green">BULLISH${st.star ? ' ★' : ''}</span>`;
+            return `<tr onclick="STATE.chartTicker='${e.t}';document.getElementById('chartInfo').innerHTML=getChartInfo('${e.t}')" style="cursor:pointer;background:${rowBg}" title="${st ? st.tip.replace(/"/g,'') : ''}">
+              <td class="text-muted">${i+1}</td>
+              <td class="fw-bold" style="color:${tickC}">${e.t}${st && st.star ? ' <span style="color:var(--gold,#f59e0b)">★</span>' : ''}</td>
+              <td class="text-muted" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.n}</td>
+              <td>${e.u}</td>
+              <td><span class="badge badge-yellow">${e.exDay}</span></td>
+              <td>$${fmt(e.p)}</td>
+              <td class="text-muted">${hasE ? '$'+fmt(e.ema10) : '—'}</td>
+              <td class="text-muted">${hasE ? '$'+fmt(e.ema20) : '—'}</td>
+              <td class="text-muted">${hasE ? '$'+fmt(e.ema50) : '—'}</td>
+              <td>${sigBadge}</td>
+              <td class="fw-bold" style="color:${scColor}">${sc}</td>
+              <td class="positive">$${fmt(e.div)}</td>
+              <td class="positive">${fmt(e.wy)}%</td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
+    <div class="text-muted text-xs mt-8">${sorted.length} weekly ETFs. Click a row for details. EMA/earnings columns populate after "Load Technicals".</div>
   `;
 }
 function getChartInfo(ticker) {
@@ -3485,51 +3752,23 @@ function getChartInfo(ticker) {
 function getChartInfoHTML(e) {
   const sc = compositeScore(e);
   const scColor = sc >= 70 ? 'var(--green)' : sc >= 50 ? 'var(--yellow)' : 'var(--orange)';
+  const st = tickerStatus(e);
+  const hasE = e.ema10 != null;
   return `
     <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;font-size:12px">
       <div><span class="fw-bold" style="color:var(--accent);font-size:14px">${e.t}</span> <span class="text-muted">${e.n}</span></div>
       <div>Underlying: <strong>${e.u}</strong></div>
       <div>Price: <strong>$${fmt(e.p)}</strong></div>
+      ${hasE ? `<div>EMA 10/20/50: <strong>$${fmt(e.ema10)} / $${fmt(e.ema20)} / $${fmt(e.ema50)}</strong></div>` : ''}
+      ${st ? `<div>Signal: <strong style="color:${statusColorVar(st.cls)}">${st.cls.toUpperCase()}${st.star ? ' ★' : ''}</strong></div>` : ''}
+      ${st && st.earn ? `<div style="color:var(--yellow)"><strong>⚠ ${st.earn.text}</strong></div>` : ''}
       <div>Score: <strong style="color:${scColor}">${sc}</strong> <span style="cursor:pointer;opacity:0.6" onclick="showScoreLegendModal()">(?)</span></div>
-      <div>Yield: <strong>${e.wy}%/wk</strong></div>
+      <div>Yield: <strong>${fmt(e.wy)}%/wk</strong></div>
       <div>Div: <strong>$${fmt(e.div)}</strong></div>
       <div>Risk: <strong>${RISK_LABELS[e.risk]}</strong></div>
       <div>Ex-Div: <strong>${e.exDay}</strong></div>
       <div>Freq: <span class="badge ${e.freq==="W"?"badge-green":"badge-yellow"}">${e.freq==="W"?"Weekly":"Monthly"}</span></div>
     </div>`;
-}
-function loadTVWidget(ticker) {
-  const container = document.getElementById("tv-widget");
-  if (!container) return;
-  container.innerHTML = "";
-  const widgetDiv = document.createElement("div");
-  widgetDiv.className = "tradingview-widget-container";
-  widgetDiv.style.height = "100%";
-  container.appendChild(widgetDiv);
-  const script = document.createElement("script");
-  script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
-  script.async = true;
-  const theme = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
-  script.textContent = JSON.stringify({
-    symbol: ticker,
-    interval: "D",
-    width: "100%",
-    height: "100%",
-    style: "1",
-    theme: theme,
-    timezone: "America/New_York",
-    studies: [
-      { id: "MAExp@tv-basicstudies", inputs: { length: 10 } },
-      { id: "MAExp@tv-basicstudies", inputs: { length: 20 } },
-      { id: "MAExp@tv-basicstudies", inputs: { length: 50 } }
-    ],
-    allow_symbol_change: true,
-    hide_side_toolbar: false,
-    details: true,
-    calendar: false,
-    support_host: "https://www.tradingview.com"
-  });
-  widgetDiv.appendChild(script);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -3537,7 +3776,7 @@ function loadTVWidget(ticker) {
 // ═══════════════════════════════════════════════════════
 function exportAllData() {
   const data = {
-    version: "5.3",
+    version: "5.4",
     exportDate: new Date().toISOString(),
     portfolio: STATE.portfolio,
     tradeLog: STATE.tradeLog,
