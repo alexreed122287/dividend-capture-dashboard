@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>RRJCAR Dividend Calendar</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
@@ -61,7 +61,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Robo
 ::-webkit-scrollbar { width:6px; height:6px; }
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius:3px; }
-.app { display:flex; height:100vh; }
+.app { display:flex; height:100vh; height:100dvh; }
+.menu-btn { display:none; background:var(--bg-card); border:1px solid var(--border); color:var(--text-primary); border-radius:6px; padding:6px 11px; font-size:17px; line-height:1; cursor:pointer; }
+.nav-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:150; }
+.nav-backdrop.show { display:block; }
 .sidebar { width:230px; background: var(--bg-secondary); border-right:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; transition: background 0.3s; }
 .sidebar-header { padding:16px; border-bottom:1px solid var(--border); }
 .sidebar-header h1 { font-size:15px; color: var(--sidebar-brand, var(--accent)); letter-spacing:0.5px; font-weight:800; }
@@ -128,7 +131,8 @@ input:focus, select:focus { outline:none; border-color: var(--accent); }
 .day-tab.active { background: var(--accent); border-color: var(--accent); color:#fff; }
 .day-tab:hover:not(.active) { border-color: var(--accent); color: var(--text-primary); }
 .calendar-grid { display:grid; grid-template-columns: repeat(5, 1fr); gap:12px; }
-.cal-day { background: var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:12px; min-height:200px; }
+.cal-day { background: var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:12px; }
+.cal-day.expanded { min-height:200px; }
 .cal-day-header { font-size:12px; font-weight:700; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border); }
 .cal-day.today { border-color: var(--accent); }
 .cal-day.today .cal-day-header { color: var(--accent); }
@@ -224,15 +228,42 @@ input:focus, select:focus { outline:none; border-color: var(--accent); }
   .calendar-grid { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width:768px) {
-  .sidebar { display:none; }
-  .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  .menu-btn { display:inline-flex; align-items:center; justify-content:center; }
+  .sidebar {
+    display:flex; position:fixed; top:0; left:0; height:100vh; height:100dvh;
+    z-index:200; transform:translateX(-100%); transition:transform .25s ease;
+    box-shadow:0 0 26px rgba(0,0,0,0.55); padding-top:env(safe-area-inset-top);
+  }
+  .sidebar.open { transform:translateX(0); }
+  .topbar { padding:0 12px; padding-top:env(safe-area-inset-top); height:auto; min-height:50px; gap:8px; }
+  .topbar-left { gap:10px; }
+  .topbar-right { gap:8px; font-size:10px; }
+  .hide-mobile { display:none !important; }
+  .grid-4, .grid-3, .grid-2, .grid-1-2 { grid-template-columns: 1fr; }
   .calendar-grid { grid-template-columns: 1fr; }
+  .content { padding:10px; padding-bottom:calc(14px + env(safe-area-inset-bottom)); }
+  .modal { width:96vw; padding:16px; max-height:88vh; }
+  .modal .grid-2 { grid-template-columns:1fr; }
+  table { font-size:10px; }
+  th, td { padding:6px 7px; }
+  .btn { padding:8px 13px; }
+  .btn-sm { padding:6px 10px; }
+  h2 { font-size:15px !important; }
+}
+@media (max-width:480px) {
+  .card { padding:12px; }
+  .stat-value { font-size:20px; }
+  .clock { font-size:12px; }
+  .sidebar { width:80vw; max-width:300px; }
+  .filter-bar input, .filter-bar select { width:100% !important; }
+  .filter-bar > div { width:100%; }
 }
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="sidebar">
+  <div class="nav-backdrop" id="navBackdrop" onclick="closeNav()"></div>
+  <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <h1>RRJCAR</h1>
       <div class="subtitle">Dividend Calendar</div>
@@ -250,7 +281,7 @@ input:focus, select:focus { outline:none; border-color: var(--accent); }
       <div class="nav-item" data-page="settings"><span class="icon">&#9881;</span> Settings</div>
     </div>
     <div class="sidebar-footer">
-      <div>RRJCAR v5.4</div>
+      <div>RRJCAR v5.5</div>
       <div style="margin-top:4px;" id="providerFooter">Live Data</div>
     </div>
   </div>
@@ -258,6 +289,7 @@ input:focus, select:focus { outline:none; border-color: var(--accent); }
   <div class="main">
     <div class="topbar">
       <div class="topbar-left">
+        <button class="menu-btn" id="menuBtn" onclick="toggleNav()" aria-label="Menu">&#9776;</button>
         <span class="clock" id="clock"></span>
         <span class="market-pill" id="marketStatus"></span>
       </div>
@@ -265,16 +297,16 @@ input:focus, select:focus { outline:none; border-color: var(--accent); }
         <div class="refresh-bar">
           <span class="live-dot offline" id="liveDot"></span>
           <button class="refresh-btn" id="refreshBtn" onclick="fetchLiveData()">Refresh</button>
-          <span class="refresh-status" id="refreshStatus">No API key</span>
+          <span class="refresh-status hide-mobile" id="refreshStatus">No API key</span>
           <div class="progress-bar-mini hidden" id="refreshProgress"><div class="progress-bar-fill" id="refreshProgressFill" style="width:0%"></div></div>
         </div>
-        <span style="color:var(--border)">|</span>
-        <span class="text-muted">Portfolio:</span>
-        <span class="fw-bold" id="topPortfolioValue">$0</span>
-        <span id="topPortfolioPnl"></span>
-        <span style="color:var(--border)">|</span>
-        <span class="text-muted">Capital:</span>
-        <span class="fw-bold" id="topCapital">$50,000</span>
+        <span class="hide-mobile" style="color:var(--border)">|</span>
+        <span class="text-muted hide-mobile">Portfolio:</span>
+        <span class="fw-bold hide-mobile" id="topPortfolioValue">$0</span>
+        <span class="hide-mobile" id="topPortfolioPnl"></span>
+        <span class="hide-mobile" style="color:var(--border)">|</span>
+        <span class="text-muted hide-mobile">Capital:</span>
+        <span class="fw-bold hide-mobile" id="topCapital">$50,000</span>
       </div>
     </div>
 
@@ -518,6 +550,7 @@ const STATE = {
   filterType: "All",
   filterSector: "All",
   searchTerm: "",
+  calExpanded: {}, // per-day calendar expand state; empty = all collapsed (default)
 };
 
 // Restore cached live prices from localStorage
@@ -841,6 +874,12 @@ async function loadTechnicals() {
   saveTechnicals();
   render();
   updateRefreshUI(`Technicals: ${done} loaded${failed ? ` (${failed} missed)` : ""} @ ${new Date().toLocaleTimeString()}`, -1, "live");
+}
+
+// Calendar day expand/collapse (default collapsed).
+function toggleCalDay(day) {
+  STATE.calExpanded[day] = !STATE.calExpanded[day];
+  render();
 }
 
 // Copy a day's recommended buy tickers, ranked by dividend (high→low).
@@ -1322,7 +1361,7 @@ function updateTopbar() {
   $("#topPortfolioValue").textContent = fmtMoney(pv);
   const pnlEl = $("#topPortfolioPnl");
   pnlEl.textContent = fmtMoneySign(pnl);
-  pnlEl.className = pctClass(pnl);
+  pnlEl.className = pctClass(pnl) + " hide-mobile";
   $("#topCapital").textContent = fmtMoney(STATE.capital);
 }
 
@@ -1631,28 +1670,38 @@ function renderCalendar() {
               </div>
             </div>`;
         };
+        const expanded = !!STATE.calExpanded[day];
         return `
-          <div class="cal-day ${isToday ? 'today' : ''}" style="min-height:180px">
+          <div class="cal-day ${isToday ? 'today' : ''} ${expanded ? 'expanded' : ''}">
             <div class="cal-day-header flex flex-between">
-              <span>${day}${isToday ? ' (TODAY)' : ''}</span>
+              <span style="cursor:pointer" onclick="toggleCalDay('${day}')">${day}${isToday ? ' (TODAY)' : ''}</span>
               <span class="flex flex-center gap-8">
                 <span class="text-xs text-muted">${totalActions} actions</span>
                 ${totalActions > 0 ? `<button class="btn btn-sm" style="padding:2px 7px;font-size:9px" onclick="copyDayTickers('${day}')" title="Copy buy tickers for ${day}, ranked by dividend (high→low)">Copy All</button><span id="copyStatus-${day}" class="text-xs positive"></span>` : ''}
+                ${totalActions > 0 ? `<button class="btn btn-sm" style="padding:2px 7px;font-size:9px" onclick="toggleCalDay('${day}')">${expanded ? 'Hide' : 'Show'}</button>` : ''}
               </span>
             </div>
-            ${allSells.length > 0 ? `
-              <div style="margin-bottom:8px">
-                <div class="text-xs fw-bold" style="color:var(--red);margin-bottom:4px">🔴 SELL (ex-div today) — ${allSells.length}</div>
-                ${allSells.map((e, i) => calRow(e, i, 'sell')).join("")}
+            ${totalActions === 0 ? '<div class="text-muted text-xs" style="padding:14px 0;text-align:center">No actions this day</div>' : (expanded ? `
+              ${allSells.length > 0 ? `
+                <div style="margin-bottom:8px">
+                  <div class="text-xs fw-bold" style="color:var(--red);margin-bottom:4px">🔴 SELL (ex-div today) — ${allSells.length}</div>
+                  ${allSells.map((e, i) => calRow(e, i, 'sell')).join("")}
+                </div>
+              ` : ''}
+              ${allBuys.length > 0 ? `
+                <div>
+                  <div class="text-xs fw-bold" style="color:var(--green);margin-bottom:4px">🟢 BUY RANKED (by div) — ${allBuys.length}</div>
+                  ${allBuys.map((e, i) => calRow(e, i, 'buy')).join("")}
+                </div>
+              ` : ''}
+            ` : `
+              <div class="text-xs" style="padding:8px 0;cursor:pointer" onclick="toggleCalDay('${day}')">
+                ${allSells.length > 0 ? `<span style="color:var(--red)">🔴 ${allSells.length} sell</span>` : ''}
+                ${allSells.length > 0 && allBuys.length > 0 ? '<span class="text-muted"> · </span>' : ''}
+                ${allBuys.length > 0 ? `<span style="color:var(--green)">🟢 ${allBuys.length} buy</span>` : ''}
+                <span class="text-muted"> — tap Show</span>
               </div>
-            ` : ''}
-            ${allBuys.length > 0 ? `
-              <div>
-                <div class="text-xs fw-bold" style="color:var(--green);margin-bottom:4px">🟢 BUY RANKED (by div) — ${allBuys.length}</div>
-                ${allBuys.map((e, i) => calRow(e, i, 'buy')).join("")}
-              </div>
-            ` : ''}
-            ${totalActions === 0 ? '<div class="text-muted text-xs" style="padding:20px 0;text-align:center">No actions this day</div>' : ''}
+            `)}
           </div>`;
       }).join("")}
     </div>
@@ -3087,11 +3136,23 @@ function bindEvents() {
 // ═══════════════════════════════════════════════════════
 // NAV & CLOCK
 // ═══════════════════════════════════════════════════════
+function toggleNav() {
+  const sb = document.getElementById("sidebar");
+  const bd = document.getElementById("navBackdrop");
+  const open = sb.classList.toggle("open");
+  bd.classList.toggle("show", open);
+}
+function closeNav() {
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("navBackdrop").classList.remove("show");
+}
+
 document.querySelectorAll(".nav-item").forEach(item => {
   item.addEventListener("click", () => {
     document.querySelectorAll(".nav-item").forEach(i => i.classList.remove("active"));
     item.classList.add("active");
     STATE.page = item.dataset.page;
+    closeNav();
     render();
   });
 });
@@ -3776,7 +3837,7 @@ function getChartInfoHTML(e) {
 // ═══════════════════════════════════════════════════════
 function exportAllData() {
   const data = {
-    version: "5.4",
+    version: "5.5",
     exportDate: new Date().toISOString(),
     portfolio: STATE.portfolio,
     tradeLog: STATE.tradeLog,
